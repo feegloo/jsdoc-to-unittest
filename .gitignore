@@ -1,0 +1,7 @@
+coverage/
+node_modules
+.cache/
+.idea/
+yarn-error.log
+.DS_Store
+.directory

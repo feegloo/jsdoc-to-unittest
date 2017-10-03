@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`#cli example-file 1 matches snapshot 1`] = `
+"export function contains(str1, str2) {
+    return str1 && str1.indexOf(str2) !== -1;
+}
+const defaults = (function proxy() {
+    return new Proxy(global, {
+      get(target, prop) {
+        try {
+          return eval(prop);
+        } catch (ex) {
+          if (ex instanceof ReferenceError) {
+            return proxy();
+          }
+        }
+      },
+    });
+  })();
+
+  export default defaults; 
+
+  describe('contains', () => {
+    test('example 1', () => {
+    expect(contains('foo', 'fooo')).toBe(false);
+  });
+
+test('example 2', () => {
+    expect(contains('hey', 'ey')).toBe(true);
+  });
+  });
+"
+`;
