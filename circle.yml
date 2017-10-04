@@ -1,0 +1,12 @@
+machine:
+  node:
+    version: 8.5.0
+dependencies:
+  override:
+    - yarn
+  cache_directories:
+    - ~/.cache/yarn
+test:
+  override:
+    - yarn lint
+    - yarn test -- --coverage --maxWorkers 2

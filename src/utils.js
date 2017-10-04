@@ -1,8 +1,22 @@
-function toResult(str) {
+export function toResult(str) {
   return str.replace(/^[;]*|[;]*$/g, '');
 }
 
-exports.toResult = toResult;
+export function validateSyntax(code) {
+  try {
+    Function(`'use strict';${code}`)();
+  } catch (ex) {
+    if (ex instanceof SyntaxError) {
+      return {
+        ex,
+      };
+    }
+  }
+
+  return {
+    ex: null,
+  };
+}
 
 function isFunction(str) {
   try {
@@ -14,16 +28,12 @@ function isFunction(str) {
 
 const reg = /[\n;]/;
 
-function stripComments(str) {
-  return str
-    .replace(/\/{2,}.*(?:\n|$)/, '')
-    .replace(/\/\*[^*]+\*\//, '');
-}
+export const stripComments = str => str.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
 
-exports.stripComments = stripComments;
-
-exports.wrap = function wrap(src) {
-  if (isFunction(src)) return src;
+export function wrap(src, withMock) {
+  if (isFunction(src)) {
+    return withMock ? `mock(() => ${src})` : src;
+  }
 
   try {
     if (reg.test(src)) {
@@ -31,14 +41,52 @@ exports.wrap = function wrap(src) {
         .map(stripComments)
         .filter(item => item.trim().length);
       if (lines.length > 1) {
-        return `() => { ${lines.slice(0, lines.length - 1).join(';\n')};\nreturn (${toResult(lines[lines.length - 1])}); }`;
+        const wrappedFunc = `() => {
+          ${lines.slice(0, lines.length - 1).join(';\n')};
+          return (${toResult(lines[lines.length - 1])});
+        }`;
+        if (!validateSyntax(wrappedFunc).ex) {
+          return withMock ? `mock(${wrappedFunc})` : wrappedFunc;
+        }
+
+        return withMock ? `mock(() => { ${src} })` : `() => { ${src} }`;
       }
 
-      return lines.join('').replace(/;*$|\/{2,}.*$/g, '').trim();
+      const joined = lines.join('').replace(/;*$|\/{2,}.*$/g, '').trim();
+      return withMock ? `mock(() => ${joined})` : joined;
     }
 
-    return src.replace(/;*$|\/{2,}.*$/g, '').trim();
+    const formattedSrc = src.replace(/;*$|\/{2,}.*$/g, '').trim();
+    return withMock ? `mock(() => ${formattedSrc})` : formattedSrc;
   } catch (ex) {
     return '';
   }
-};
+}
+
+export const isPrimitive = sth => typeof sth !== 'object' && typeof sth !== 'function';
+
+export const assertAccess = target => new Proxy(() => {}, {
+  has: () => true,
+  get(_, key) {
+    if (key === Symbol.unscopables) return [];
+
+    if (Reflect.has(target, key)) {
+      const value = target[key];
+      if (isPrimitive(value)) {
+        return value;
+      }
+
+      if (typeof value === 'function') {
+        return function () {
+          try {
+            return value.apply(this, arguments); // todo: propagate assertAccess further?
+          } catch (ex) {}
+        };
+      }
+
+      return assertAccess(value);
+    }
+
+    return assertAccess({});
+  },
+});

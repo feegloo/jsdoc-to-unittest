@@ -1,1 +1,3 @@
-require('./src/cli')();
+import cli from './src/cli';
+
+cli();

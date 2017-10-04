@@ -1,16 +1,28 @@
+import escodegen from 'escodegen';
+import doctrine from 'doctrine';
+import { toResult, stripComments } from './utils';
+import { parseKey } from './analyzer';
+
 const acorn = require('acorn');
 const walk = require('acorn/dist/walk');
-const escodegen = require('escodegen');
-const doctrine = require('doctrine');
-const { toResult } = require('./utils');
-const getPath = require('./analyzer');
+
+function getLines(code) {
+  const lines = code.split(/[\n]+/);
+
+  return {
+    lines,
+    commentedOut: lines
+      .map(stripComments)
+      .filter(item => item.trim().length),
+  };
+}
 
 function parseExample({ obj, description: code, returns }) {
   const comments = [];
   const data = {
     get name() { return this.obj; },
     set name(value) {
-      obj.name = value; // eslint-disable-line no-param-reassign
+      obj.name = value;
       return true;
     },
     code,
@@ -18,14 +30,10 @@ function parseExample({ obj, description: code, returns }) {
   };
 
   try {
-    const lines = code.split(/[\n]+/);
+    const { lines, commentedOutLines } = getLines(code);
     const ast = acorn.parse(lines[lines.length - 1], {
       onComment: comments,
     });
-
-    const commentedOutLines = lines
-      .map(item => item.replace(/\/{2,}.*(?:\n|$)/, '').trim())
-      .filter(item => item.trim().length);
 
     walk.simple(ast, {
       CallExpression(node) {
@@ -60,14 +68,12 @@ function parseExample({ obj, description: code, returns }) {
     } else {
       data.code = commentedOutLines.join('');
     }
-  } catch (ex) {
-    // doesn't need any sort of erorr handling, we return data anyway
-  }
+  } catch (ex) {}
 
   return data;
 }
 
-exports.default = (code) => {
+export default (code) => {
   const funcs = {};
   const comments = [];
   const parsed = [];
@@ -88,11 +94,8 @@ exports.default = (code) => {
     .forEach(({ value: comment }) => {
       try {
         parsed.push(doctrine.parse(comment, { unwrap: true }));
-      } catch (ex) {
-        // no need to handle it, let's continue
-      }
+      } catch (ex) {}
     });
-
 
   return {
     exports: Object.values(funcs),
@@ -104,10 +107,18 @@ exports.default = (code) => {
         member: tags.find(({ title }) => title === 'memberof'),
       };
 
+      const examples = tags
+        .filter(({ title }) => title === 'example')
+        .map(item => parseExample({ ...item, returns, obj }));
+
+      if (examples.length && obj.name === undefined) {
+        try {
+          obj.name = parseKey(examples[0].code).fullPath.pop();
+        } catch (ex) {}
+      }
+
       return {
-        examples: tags
-          .filter(({ title }) => title === 'example')
-          .map(item => parseExample({ ...item, returns, obj })),
+        examples,
         ...obj,
       };
     }),

@@ -1,10 +1,93 @@
-import { getPath, isCallable } from 'src/analyzer';
+import {
+  parseKey,
+  getPath,
+  isCallable,
+  listAccesses,
+} from 'src/analyzer';
+
+describe('#parseKey', () => {
+  test('dot notated', () => {
+    expect(parseKey('foo.bar.baz')).toEqual({
+      args: 0,
+      isCalled: false,
+      key: 'foo.bar.baz',
+      path: ['access', 'get', 'get'],
+      fullPath: ['foo', 'bar', 'baz'],
+    });
+
+    expect(parseKey('foo.bar.baz(1, 2)')).toEqual({
+      args: 2,
+      isCalled: true,
+      key: 'foo.bar.baz',
+      path: ['access', 'get', 'get', 'call'],
+      fullPath: ['foo', 'bar', 'baz'],
+    });
+  });
+
+  test('nested', () => {
+    expect(parseKey('foo[0].bar().baz(1, 2)')).toEqual({
+    });
+  });
+
+  test('mixed', () => {
+    expect(parseKey('foo[\'bar\'].baz')).toEqual({
+      args: 0,
+      isCalled: false,
+      key: 'foo[\'bar\'].baz',
+      path: ['access', 'get', 'get'],
+      fullPath: ['foo', 'bar', 'baz'],
+    });
+  });
+
+  test('raises SyntaxError', () => {
+
+  });
+});
+
+describe('#listAccesses', () => {
+  test('lists accesses', () => {
+    expect(listAccesses('frosmo.xyz.aaa', 'frosmo.xyz.aaa')).toEqual([['get', 'get']]);
+    expect(listAccesses('frosmo.xyz.aaa()', 'frosmo.xyz.aaa')).toEqual([['get', 'get', 'call', 0]]);
+    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', 'frosmo.xyz.aaa')).toEqual([['get', 'get', 'call', 3]]);
+    expect(listAccesses('frosmo.xyz.aaa();frosmo.xyz.aaa', 'frosmo.xyz.aaa')).toEqual([
+      ['get', 'get', 'call', 0],
+      ['get', 'get'],
+    ]);
+  });
+
+  test('detects correct number of arguments', () => {
+    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', 'frosmo.xyz.aaa()')).toEqual([
+      ['get', 'get', 'call', 3],
+    ]);
+  });
+
+  test('shadows objects', () => {
+    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', 'frosmo.xyz.aaa()')).toEqual([
+      ['get', 'get', 'call', 3],
+    ]);
+  });
+
+  test('never throws', () => {
+    expect(listAccesses('baz.foo.bar()', 'frosmo.xyz.aaa()')).toEqual([]);
+    expect(listAccesses('baz.fo;;---o.bar()', 'frosmo.xyz.aaa()')).toEqual([]);
+  });
+});
 
 describe('#getPath', () => {
   test('get paths correctly', () => {
     expect(getPath('frosmo.test.xyz.call()')).toEqual([['test', 'xyz', 'call']]);
     expect(getPath('frosmo.yes.hello.call')).toEqual([['yes', 'hello', 'call']]);
     expect(getPath('easy.easy.hello.call')).toEqual([['easy', 'hello', 'call']]);
+  });
+
+  test('follows the flow execution', () => {
+    expect(getPath('false && frosmo.yes.hello.call')).toEqual([]);
+    expect(getPath('false && frosmo.test.xyz.call()')).toEqual([]);
+  });
+
+  test('brackets notated', () => {
+    expect(getPath('easy[\'bar\'][\'baz\']')).toEqual([['bar', 'baz']]);
+    expect(getPath('frosmo[0][1][\'bar\']')).toEqual([['0', '1', 'bar']]);
   });
 
   test('multiple chains', () => {

@@ -1,3 +1,5 @@
+import { assertAccess } from "./utils";
+
 function chainableProxy(handlers) {
   const traps = {};
   let instance;
@@ -44,25 +46,106 @@ function withProxy(found, called) {
   });
 }
 
-function getPath(func, args = ['easy', 'frosmo']) {
+export function getPath(func, args = ['easy', 'frosmo']) {
   const path = [];
   Function(args.join(','), func)(...args.map(() => intercept(path)));
   return path;
 }
 
-function isCallable(func, toObserve, all = false) {
-  const _found = [];
-  const _called = [];
+export function isCallable(func, toObserve, all = false) {
+  const found = [];
+  const called = [];
   Function(
     's',
-    `with(s){return(()=>{${func}})()}`,
-  )(withProxy(_found, _called));
+    `with(s){return(()=>{\n${func}\n})()}`,
+  )(withProxy(found, called));
 
-  const found = _found.filter(item => toObserve.includes(item.join('.')));
-  const called = _called.filter(item => toObserve.includes(item.join('.')));
+  const foundObserved = found.filter(item => toObserve.includes(item.join('.')));
+  const calledObserved = called.filter(item => toObserve.includes(item.join('.')));
 
-  return called.length > 0 && (!all || found.length === called.length);
+  return calledObserved.length > 0 && (!all || foundObserved.length === calledObserved.length);
 }
 
-exports.getPath = getPath;
-exports.isCallable = isCallable;
+function getFromScope(path, _eval, defaults) {
+  try {
+    return _eval(path);
+  } catch (ex) {
+    if (!(ex instanceof SyntaxError)) {
+      return defaults;
+    }
+  }
+}
+
+export function fallToGlobal(target, _eval, oldKey = '') {
+  return new Proxy(target, {
+    has: () => true,
+    get(_, key) {
+      if (key === Symbol.unscopables) return [];
+      if (key === 'arguments') return [];
+
+      if (Reflect.has(target, key)) {
+        const newTarget = target[key];
+        if (typeof newTarget !== 'object') {
+          return newTarget;
+        }
+
+        return fallToGlobal(newTarget, _eval, `${oldKey}.${key}`);
+      }
+
+      return getFromScope(`${oldKey}.${key}`.slice(1), _eval,);
+    },
+  });
+}
+
+const functionMockRegex = /([^(]+)(\()?([^)]*)\)?$/;
+
+export const parseKey = (key) => {
+  const [, name, isCalled, args] = functionMockRegex.exec(key);
+  const firstKey = /^[^.[)]+/.exec(key);
+
+  const [fullPath = []] = getPath(key, firstKey);
+  const path = new Array(fullPath.length).fill('get');
+  if (isCalled === '(') {
+    path.push('call');
+  }
+
+  return {
+    key: name,
+    path: ['access', ...path],
+    fullPath: [firstKey[0], ...fullPath],
+    isCalled: isCalled === '(',
+    args: args.split(/[,\s]*/).length,
+  };
+};
+
+export function listAccesses(code, path) {
+  const obj = {};
+  const accesses = [];
+  path.split('.').reduce((acc, key, i, arr) => {
+    [, key] = functionMockRegex.exec(key);
+    if (arr.length === i + 1) {
+      Object.defineProperty(acc, key, {
+        enumerable: true,
+        get() {
+          const actions = new Array(arr.length - 1).fill('get'); // fixme too naive, doesn't contain calls
+          accesses.push(actions);
+          return (...args) => {
+            actions.push('call', args.length);
+          };
+        },
+      });
+    } else {
+      acc[key] = {};
+      return acc[key];
+    }
+  }, obj);
+
+  try {
+    Function(
+      's',
+      `with(s){\n${code}\n}`,
+    )(assertAccess(obj));
+  } catch (ex) {}
+
+  return accesses;
+}
