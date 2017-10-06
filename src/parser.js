@@ -1,7 +1,7 @@
 import escodegen from 'escodegen';
 import doctrine from 'doctrine';
 import { toResult, stripComments } from './utils';
-import { parseKey } from './analyzer';
+import { getPath, parseKey } from './analyzer';
 
 const acorn = require('acorn');
 const walk = require('acorn/dist/walk');

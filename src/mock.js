@@ -18,7 +18,7 @@ export default function mock(func, mocks, _eval) {
               toCompare.push(_value.args);
             }
 
-            const index = accesses.findIndex(path => path.join() === toCompare.join());
+            const index = accesses.findIndex(item => item.join() === toCompare.join());
             if (index === -1) {
               return false;
             }

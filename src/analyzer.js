@@ -1,10 +1,10 @@
-import { assertAccess } from "./utils";
+import { assertAccess } from './utils';
 
 function chainableProxy(handlers) {
   const traps = {};
   let instance;
   for (const [trap, func] of Object.entries(handlers)) {
-    traps[trap] = (...args) => {
+    traps[trap] = (...args) => { // eslint-disable-line no-loop-func
       try {
         const ret = func(...args);
         if (ret !== undefined) return ret;
@@ -92,7 +92,7 @@ export function fallToGlobal(target, _eval, oldKey = '') {
         return fallToGlobal(newTarget, _eval, `${oldKey}.${key}`);
       }
 
-      return getFromScope(`${oldKey}.${key}`.slice(1), _eval,);
+      return getFromScope(`${oldKey}.${key}`.slice(1), _eval);
     },
   });
 }
@@ -134,10 +134,12 @@ export function listAccesses(code, path) {
           };
         },
       });
-    } else {
-      acc[key] = {};
-      return acc[key];
+
+      return null;
     }
+
+    acc[key] = {};
+    return acc[key];
   }, obj);
 
   try {

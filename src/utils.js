@@ -79,6 +79,7 @@ export const assertAccess = target => new Proxy(() => {}, {
       if (typeof value === 'function') {
         return function () {
           try {
+            // eslint-disable-next-line prefer-rest-params
             return value.apply(this, arguments); // todo: propagate assertAccess further?
           } catch (ex) {}
         };

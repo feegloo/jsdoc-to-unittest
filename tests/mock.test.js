@@ -19,13 +19,14 @@ describe('#mock', () => {
   });
 
   test('mocks functions correctly', () => {
-    expect(mock(() => abc.xyz() + obj.foo.bar() + 10, {
+    expect(mock(() => abc.xyz() + obj.foo.bar() + 10, { // eslint-disable-line no-undef
       'abc.xyz()': () => 5,
     }, func => eval(func))()).toBe(16);
   });
 
   test('mocks functions with params', () => {
-    expect(mock(() => bar.foo.baz() + foo.bar() + foo.bar(1) + foo.bar(1, 2), { // eslint-disable-line no-undef
+    // eslint-disable-next-line no-undef
+    expect(mock(() => bar.foo.baz() + foo.bar() + foo.bar(1) + foo.bar(1, 2), {
       'foo.bar()': () => 5,
       'foo.bar(1)': () => 10,
       'foo.bar(1,2)': a => 100 + a,

@@ -14,7 +14,7 @@ const func = `
     var x = call2();
     return arr[1] + +call() + x;
   }
-`
+`;
 
 const func2 = `
   var arr = [0, 2];
@@ -47,7 +47,7 @@ describe('wrap', () => {
   test('clever wrapping', () => {
     expect(evaluate(`easy.utils.each([1, 2, 3], function (value, index) {
       easy.console.log(index, value);
-    });`)).toBe()
+    });`)).not.toBe();
   });
 
   test('never throws', () => {

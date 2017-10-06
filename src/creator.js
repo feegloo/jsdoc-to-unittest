@@ -128,7 +128,7 @@ class Test {
     // return `import {
     //   ${this.imports.map(name => name).join(',\n')}
     // } from './${this.exportsFileName}';
-   // `;
+    // `;
     return `import * as __imports__ from './${this.exportsFileName}'`;
   }
 
@@ -163,7 +163,7 @@ class Test {
   }
 
   printStats() {
-    return `// Valid tests: ${((this.stats.valid / this.stats.total) * 100).toFixed(2)}%`
+    return `// Valid tests: ${((this.stats.valid / this.stats.total) * 100).toFixed(2)}%`;
   }
 
   async print() {
@@ -172,7 +172,7 @@ class Test {
       this.printStats(),
       this.printImports(),
       ...(await this.printPartials()),
-     samples,
+      samples,
     ].join('\n'));
   }
 
