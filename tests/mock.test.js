@@ -32,6 +32,12 @@ describe('#mock', () => {
       'foo.bar(1,2)': a => 100 + a,
       'bar.foo.baz()': () => 0,
     }, func => eval(func))()).toBe(116);
+
+    // eslint-disable-next-line no-undef
+    expect(mock(() => foo.x().y() + foo.x(1).y(), {
+      'foo.x().y()': () => 5,
+      'foo.x(1).y()': () => 7,
+    }, func => eval(func))()).toBe(12);
   });
 
   test('mocks getters correctly', () => {

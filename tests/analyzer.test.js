@@ -7,77 +7,104 @@ import {
 
 describe('#parseKey', () => {
   test('dot notated', () => {
-    expect(parseKey('foo.bar.baz')).toEqual({
-      args: 0,
-      isCalled: false,
-      key: 'foo.bar.baz',
-      path: ['access', 'get', 'get'],
-      fullPath: ['foo', 'bar', 'baz'],
-    });
+    expect(parseKey('foo.bar.baz')).toEqual([{
+      calls: 0,
+      access: ['access', 'get', 'get'],
+      path: ['foo', 'bar', 'baz'],
+    }]);
 
-    expect(parseKey('foo.bar.baz(1, 2)')).toEqual({
-      args: 2,
-      isCalled: true,
-      key: 'foo.bar.baz',
-      path: ['access', 'get', 'get', 'call'],
-      fullPath: ['foo', 'bar', 'baz'],
-    });
+    expect(parseKey('foo.bar.baz(1, 2)')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 2],
+      path: ['foo', 'bar', 'baz'],
+    }]);
   });
 
   test('nested', () => {
-    expect(parseKey('foo[0].bar().baz(1, 2)')).toEqual({
-    });
+    expect(parseKey('foo[0].bar().baz(1, 2)')).toEqual([{
+      path: ['foo', '0', 'bar', 'baz'],
+      calls: 2,
+      access: ['access', 'get', 'get', 'call', 0, 'get', 'call', 2],
+    }]);
+
+    expect(parseKey('foo[0].bar(10, 12).baz(1, 2);baz.bar(10, 12);')).toEqual([
+      {
+        calls: 2,
+        path: ['foo', '0', 'bar', 'baz'],
+        access: ['access', 'get', 'get', 'call', 2, 'get', 'call', 2],
+      },
+      {
+        calls: 1,
+        path: ['baz', 'bar'],
+        access: ['access', 'get', 'call', 2],
+      },
+    ]);
+  });
+
+  test('toPrimitive', () => {
+    expect(parseKey('foo.bar() + xyz()')).toEqual([
+      {
+        access: ['access', 'get', 'call', 0],
+        calls: 1,
+        path: ['foo', 'bar'],
+      },
+      {
+        access: ['access', 'call', 0],
+        calls: 1,
+        path: ['xyz'],
+      }]);
   });
 
   test('mixed', () => {
-    expect(parseKey('foo[\'bar\'].baz')).toEqual({
-      args: 0,
-      isCalled: false,
-      key: 'foo[\'bar\'].baz',
-      path: ['access', 'get', 'get'],
-      fullPath: ['foo', 'bar', 'baz'],
-    });
+    expect(parseKey('foo[\'bar\'].baz')).toEqual([{
+      calls: 0,
+      access: ['access', 'get', 'get'],
+      path: ['foo', 'bar', 'baz'],
+    }]);
   });
 
   test('raises SyntaxError', () => {
-
+    expect(() => parseKey(';;;-/\\\\--;;;')).toThrow(SyntaxError);
   });
 });
 
 describe('#listAccesses', () => {
   test('lists accesses', () => {
-    expect(listAccesses('frosmo.xyz.aaa', 'frosmo.xyz.aaa')).toEqual([['get', 'get']]);
-    expect(listAccesses('frosmo.xyz.aaa()', 'frosmo.xyz.aaa')).toEqual([['get', 'get', 'call', 0]]);
-    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', 'frosmo.xyz.aaa')).toEqual([['get', 'get', 'call', 3]]);
-    expect(listAccesses('frosmo.xyz.aaa();frosmo.xyz.aaa', 'frosmo.xyz.aaa')).toEqual([
-      ['get', 'get', 'call', 0],
-      ['get', 'get'],
+    expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get']]);
+    expect(listAccesses('frosmo.xyz["aaa"]', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get']]);
+    expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz["aaa"]'])).toEqual([['access', 'get', 'get']]);
+    expect(listAccesses('frosmo.xyz.aaa()', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get', 'call', 0]]);
+    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa']))
+      .toEqual([['access', 'get', 'get', 'call', 3]]);
+    expect(listAccesses('frosmo.xyz.aaa();frosmo.xyz.aaa', ['frosmo.xyz.aaa'])).toEqual([
+      ['access', 'get', 'get', 'call', 0],
+      ['access', 'get', 'get'],
     ]);
   });
 
   test('detects correct number of arguments', () => {
-    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', 'frosmo.xyz.aaa()')).toEqual([
-      ['get', 'get', 'call', 3],
+    expect(listAccesses('frosmo.xyz().aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
+      ['access', 'get', 'call', 0, 'get', 'call', 3],
     ]);
   });
 
   test('shadows objects', () => {
-    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', 'frosmo.xyz.aaa()')).toEqual([
-      ['get', 'get', 'call', 3],
+    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
+      ['access', 'get', 'get', 'call', 3],
     ]);
   });
 
   test('never throws', () => {
-    expect(listAccesses('baz.foo.bar()', 'frosmo.xyz.aaa()')).toEqual([]);
-    expect(listAccesses('baz.fo;;---o.bar()', 'frosmo.xyz.aaa()')).toEqual([]);
+    expect(listAccesses('baz.foo.bar()', ['frosmo.xyz.aaa()'])).toEqual([]);
+    expect(listAccesses('baz.fo;;---o.bar()', ['frosmo.xyz.aaa()'])).toEqual([]);
   });
 });
 
 describe('#getPath', () => {
   test('get paths correctly', () => {
-    expect(getPath('frosmo.test.xyz.call()')).toEqual([['test', 'xyz', 'call']]);
-    expect(getPath('frosmo.yes.hello.call')).toEqual([['yes', 'hello', 'call']]);
-    expect(getPath('easy.easy.hello.call')).toEqual([['easy', 'hello', 'call']]);
+    expect(getPath('frosmo.test.xyz.call()')).toEqual([['frosmo', 'test', 'xyz', 'call']]);
+    expect(getPath('frosmo.yes.hello.call')).toEqual([['frosmo', 'yes', 'hello', 'call']]);
+    expect(getPath('easy.easy.hello.call')).toEqual([['easy', 'easy', 'hello', 'call']]);
   });
 
   test('follows the flow execution', () => {
@@ -86,26 +113,20 @@ describe('#getPath', () => {
   });
 
   test('brackets notated', () => {
-    expect(getPath('easy[\'bar\'][\'baz\']')).toEqual([['bar', 'baz']]);
-    expect(getPath('frosmo[0][1][\'bar\']')).toEqual([['0', '1', 'bar']]);
+    expect(getPath('easy[\'bar\'][\'baz\']')).toEqual([['easy', 'bar', 'baz']]);
+    expect(getPath('frosmo[0][1][\'bar\']')).toEqual([['frosmo', '0', '1', 'bar']]);
   });
 
   test('multiple chains', () => {
     expect(getPath('frosmo.test.xyz.call();easy.abc.foo.bar'))
-      .toEqual([['test', 'xyz', 'call'], ['abc', 'foo', 'bar']]);
+      .toEqual([['frosmo', 'test', 'xyz', 'call'], ['easy', 'abc', 'foo', 'bar']]);
   });
 
-  test('accepts other arguments', () => {
-    expect(getPath('random.one.two', ['random'])).toEqual([['one', 'two']]);
+  test('returns first key if no path is present', () => {
+    expect(getPath('random')).toEqual([['random']]);
   });
 
-  test('returns empty array if no path is present', () => {
-    expect(getPath('random', ['random'])).toEqual([]);
-  });
-
-  test('throws as expected', () => {
-    expect(() => getPath('var random = {}; random.one.two', ['reference'])).toThrow(TypeError);
-    expect(() => getPath('random.one.two', ['reference'])).toThrow(ReferenceError);
+  test('throws SyntaxError', () => {
     expect(() => getPath('---')).toThrow(SyntaxError);
   });
 });

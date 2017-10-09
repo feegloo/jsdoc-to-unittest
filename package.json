@@ -40,9 +40,9 @@
       "js"
     ],
     "moduleNameMapper": {
-      "src/(.*)": "<rootDir>/src/$1.js"
+      "src/(.*)": "<rootDir>/src/$1.js",
+      "mocks/(.*)": "<rootDir>/__mocks__/$1.js"
     },
-    "setupTestFrameworkScriptFile": "<rootDir>/jest-setup.js",
-    "testEnvironment": "node"
+    "setupTestFrameworkScriptFile": "<rootDir>/jest-setup.js"
   }
 }

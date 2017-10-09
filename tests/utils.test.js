@@ -1,4 +1,4 @@
-import { wrap, assertAccess, stripComments } from 'src/utils';
+import { wrap, assertAccess, stripComments, evaluate } from 'src/utils';
 
 function call() { // eslint-disable-line no-unused-vars
   return '2';
@@ -28,24 +28,26 @@ const func3 = `
   call(); // d
 `;
 
-function evaluate(src) {
+function exec(src) {
+  console.log(wrap(src));
   return eval(wrap(src));
 }
 
 describe('wrap', () => {
   test('works', () => {
-    expect(evaluate('call()')).toEqual('2');
-    expect(evaluate('call();')).toEqual('2');
-    expect(evaluate('call();call2();')()).toBe(10);
-    expect(evaluate('call();\n\ncall2();')()).toBe(10);
-    expect(evaluate('\n\n;call();call();\n\ncall2();')()).toBe(10);
-    expect(evaluate(func)()).toBe(14);
-    expect(evaluate(func2)()).toBe('210');
-    expect(evaluate(func3)).toBe('2');
+    expect(exec('call()')).toBe('2');
+    expect(exec('call();')).toBe('2');
+    expect(exec('2 + +call();')).toBe(4);
+    expect(exec('call();call2();')()).toBe(10);
+    expect(exec('call();\n\ncall2();')()).toBe(10);
+    expect(exec('\n\n;call();call();\n\ncall2();')()).toBe(10);
+    expect(exec(func)()).toBe(14);
+    expect(exec(func2)()).toBe('210');
+    expect(exec(func3)).toBe('2');
   });
 
   test('clever wrapping', () => {
-    expect(evaluate(`easy.utils.each([1, 2, 3], function (value, index) {
+    expect(exec(`easy.utils.each([1, 2, 3], function (value, index) {
       easy.console.log(index, value);
     });`)).not.toBe();
   });
@@ -91,4 +93,8 @@ describe('#assertAccess', () => {
     expect(() => Function('s', 'with(s){ foo.bar.xyz }')()).toThrow(TypeError);
     expect(() => Function('s', 'with(s){ foo.bar.xyz }')({ foo: {} })).toThrow(TypeError);
   });
+});
+
+describe('#evaluate', () => {
+
 });

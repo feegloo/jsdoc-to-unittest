@@ -1,4 +1,4 @@
-import { assertAccess } from './utils';
+import { evaluate } from './utils';
 
 function chainableProxy(handlers) {
   const traps = {};
@@ -17,53 +17,74 @@ function chainableProxy(handlers) {
   return instance;
 }
 
-function intercept(path, called = [], firstKey = '') {
-  const localPath = firstKey !== '' ? [firstKey] : [];
+function intercept(ret) {
+  const obj = {
+    path: [],
+    access: [],
+    calls: 0,
+    fullPath: [],
+  };
+  let current = null;
+
+  let lastAccessed = '';
   let included = false;
   return chainableProxy({
     apply(target, thisArg, argumentsList) {
-      called.push(localPath);
-      return target.apply(thisArg, argumentsList);
+      current.fullPath.push(lastAccessed, '(', ...argumentsList, ')');
+      current.calls += 1;
+      current.access.push('call', argumentsList.length);
+      target.apply(thisArg, argumentsList);
     },
-    get(target, prop) {
-      if (!included) {
-        included = true;
-        path.push(localPath);
-      }
-
-      localPath.push(prop);
+    has() {
+      current = JSON.parse(JSON.stringify(obj));
+      ret.push(current);
+      included = false;
+      return true;
     },
-  });
-}
-
-function withProxy(found, called) {
-  return chainableProxy({
-    has: () => true,
     get(target, key) {
       if (key === Symbol.unscopables) return [];
-      return intercept(found, called, key);
+      if (key === Symbol.toPrimitive) {
+        return function (hint) {
+          target.apply(this, arguments); // eslint-disable-line prefer-rest-params
+          switch (hint) {
+            case 'number':
+              return 0;
+            case 'string':
+              return '';
+            default:
+              return true;
+          }
+        };
+      }
+
+      if (!included) {
+        included = true;
+        current.access.push('access');
+      } else {
+        current.access.push('get');
+      }
+
+      lastAccessed = key;
+      current.path.push(key);
+      current.fullPath.push(key);
     },
   });
 }
 
-export function getPath(func, args = ['easy', 'frosmo']) {
-  const path = [];
-  Function(args.join(','), func)(...args.map(() => intercept(path)));
-  return path;
+export function getPath(func) {
+  return parseKey(func).reduce((acc, { path }) => {
+    if (path.length) {
+      acc.push(path);
+    }
+
+    return acc;
+  }, []);
 }
 
 export function isCallable(func, toObserve, all = false) {
-  const found = [];
-  const called = [];
-  Function(
-    's',
-    `with(s){return(()=>{\n${func}\n})()}`,
-  )(withProxy(found, called));
-
-  const foundObserved = found.filter(item => toObserve.includes(item.join('.')));
-  const calledObserved = called.filter(item => toObserve.includes(item.join('.')));
-
-  return calledObserved.length > 0 && (!all || foundObserved.length === calledObserved.length);
+  return parseKey(func)
+    .filter(({ path }) => toObserve.includes(path.join('.')))
+    [all ? 'every' : 'some'](({ calls }) => calls > 0);
 }
 
 function getFromScope(path, _eval, defaults) {
@@ -97,57 +118,34 @@ export function fallToGlobal(target, _eval, oldKey = '') {
   });
 }
 
-const functionMockRegex = /([^(]+)(\()?([^)]*)\)?$/;
-
-export const parseKey = (key) => {
-  const [, name, isCalled, args] = functionMockRegex.exec(key);
-  const firstKey = /^[^.[)]+/.exec(key);
-
-  const [fullPath = []] = getPath(key, firstKey);
-  const path = new Array(fullPath.length).fill('get');
-  if (isCalled === '(') {
-    path.push('call');
-  }
-
-  return {
-    key: name,
-    path: ['access', ...path],
-    fullPath: [firstKey[0], ...fullPath],
-    isCalled: isCalled === '(',
-    args: args.split(/[,\s]*/).length,
-  };
+export const parseKey = (exp) => {
+  const ret = [];
+  evaluate(`with(s){\n${exp}\n}`, {
+    s: intercept(ret),
+  });
+  return ret;
 };
 
-export function listAccesses(code, path) {
-  const obj = {};
-  const accesses = [];
-  path.split('.').reduce((acc, key, i, arr) => {
-    [, key] = functionMockRegex.exec(key);
-    if (arr.length === i + 1) {
-      Object.defineProperty(acc, key, {
-        enumerable: true,
-        get() {
-          const actions = new Array(arr.length - 1).fill('get'); // fixme too naive, doesn't contain calls
-          accesses.push(actions);
-          return (...args) => {
-            actions.push('call', args.length);
-          };
-        },
-      });
+export function listAccesses(code, filter = []) {
+  try {
+    let parsed = parseKey(code);
+    if (filter.length) {
+      const paths = filter.reduce((acc, path) => {
+        acc.push(...getPath(path).map(item => item.join('.')));
+        return acc;
+      }, []);
 
-      return null;
+      parsed = parsed.filter(({ path }) => paths.includes(path.join('.')));
     }
 
-    acc[key] = {};
-    return acc[key];
-  }, obj);
+    return parsed.reduce((acc, { access }) => {
+      if (access.length) {
+        acc.push(access);
+      }
 
-  try {
-    Function(
-      's',
-      `with(s){\n${code}\n}`,
-    )(assertAccess(obj));
+      return acc;
+    }, []);
   } catch (ex) {}
 
-  return accesses;
+  return [];
 }

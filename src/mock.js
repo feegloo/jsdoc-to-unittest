@@ -4,21 +4,18 @@ export default function mock(func, mocks, _eval) {
   const obj = {};
 
   for (const [path, value] of Object.entries(mocks)) {
-    const accesses = listAccesses(`(${func.toString()})()`, path, _eval);
+    const accesses = listAccesses(`(${func.toString()})()`, [path]);
     let cur = obj;
-    const { fullPath, path: accessPath, ...rest } = parseKey(path);
+    const [{ path: fullPath, access: accessPath, ...rest }] = parseKey(path);
     fullPath.forEach((key, i, arr) => {
       if (arr.length === i + 1) {
         const values = new Array(accesses.length).fill({});
         Reflect.defineProperty(cur, key, {
           configurable: false,
           set(_value) {
-            const toCompare = [..._value.path.slice(1)];
-            if (_value.isCalled) {
-              toCompare.push(_value.args);
-            }
+            const toCompare = [..._value.access].join('');
 
-            const index = accesses.findIndex(item => item.join() === toCompare.join());
+            const index = accesses.findIndex(item => item.join('') === toCompare);
             if (index === -1) {
               return false;
             }
@@ -32,7 +29,7 @@ export default function mock(func, mocks, _eval) {
           },
         });
 
-        cur[key] = { path: accessPath, value, ...rest };
+        cur[key] = { access: accessPath, value, ...rest };
       } else if (key in cur) {
         cur = cur[key];
       } else {
