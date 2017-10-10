@@ -1,6 +1,6 @@
 import prettify from './prettifier';
 import { wrap, validateSyntax } from './utils';
-import { readFile, writeFile, toStdout } from './fs';
+import { writeFile, toStdout } from './fs';
 
 class TestItem {
   constructor({
@@ -39,7 +39,7 @@ class TestItem {
   }
 
   print() {
-    const test = this.printName(`expect(${wrap(this.code, this.mock())}).${this.renderEquality()}`);
+    const test = this.printName(`expect(${wrap(this.code, this.undefined)}).${this.renderEquality()}`);
 
     const { ex } = validateSyntax(test);
     if (ex) {
@@ -50,36 +50,11 @@ class TestItem {
     return test;
   }
 
-  tryResolving() {
-    const found = [];
-    const sbx = new Proxy(this.imports, {
-      has: () => true,
-      get(target, key) {
-        if (key === Symbol.unscopables) return [];
-        if (target.includes(key)) {
-          found.push(key);
-          return () => {};
-        }
-
-        return sbx;
-      },
-    });
-
-    Function(
-      's',
-      `with(s){ ${this.code.toString()} }`,
-    )(sbx);
-
-    return this.code;
-  }
-
-  mock() {
+  get undefined() {
     try {
-      Function(this.code)();
+      Function(this.imports.join(','), this.code)();
     } catch (ex) {
-      if (ex instanceof ReferenceError || ex instanceof TypeError) {
-        return true;
-      }
+      return ex instanceof ReferenceError || (ex instanceof TypeError && ex.message.includes('null or undefined'));
     }
 
     return false;
@@ -95,11 +70,7 @@ class TestItem {
   }
 
   printError({ ex }) {
-    return this.printName(`/*
-      fixme add/fix tests
-      ${ex}
-      ${this.code}
-    */`);
+    return this.printName(`throw new ${ex.constructor.name}('${ex.message}');\n/*${this.code}*/`);
   }
 }
 
@@ -129,13 +100,13 @@ class Test {
     //   ${this.imports.map(name => name).join(',\n')}
     // } from './${this.exportsFileName}';
     // `;
-    return `import * as __imports__ from './${this.exportsFileName}'`;
+    return `import * as __imports__ from './${this.exportsFileName}';\nglobal.__imports__ = __imports__;\n`;
   }
 
   printPartials() {
     return Promise.all([
-      readFile('./src/partials/constants.js'),
-      readFile('./src/partials/mock.js'),
+      // readFile('./src/partials/constants.js'),
+      // readFile('./src/partials/mock.js'),
     ]);
   }
 
@@ -177,16 +148,26 @@ class Test {
   }
 
   async write() {
-    const output = await this.print();
-    if (this.stdout) {
-      toStdout(prettify(`${this.printExports()}\n${output}`));
-    } else {
-      await writeFile(this.exportsFileName, this.printExports());
-      await writeFile(this.filename, output);
+    let output = '';
+    try {
+      output = await this.print();
+    } catch (ex) {
+      output = ex.toString();
     }
+
+    if (this.stdout) {
+      return toStdout(prettify(`${this.printExports()}\n${output}`));
+    }
+
+    return Promise.all([
+      writeFile(this.exportsFileName, this.printExports()),
+      writeFile(this.filename, output),
+    ]);
   }
 }
 
 export default async (args) => {
-  await new Test(args).write();
+  const test = new Test(args);
+  // todo: move (from cli) readFile here etc...
+  return test.write();
 };

@@ -1,0 +1,15 @@
+ {
+  "collectCoverageFrom": [
+    "src/**/*.js"
+  ],
+  "collectCoverage": true,
+    "cacheDirectory": ".cache/",
+    "moduleFileExtensions": [
+    "js"
+  ],
+  "moduleNameMapper": {
+  "src/(.*)": "<rootDir>/src/$1.js",
+  "mocks/(.*)": "<rootDir>/__mocks__/$1.js"
+  },
+  "setupTestFrameworkScriptFile": "<rootDir>/jest-setup.js"
+}

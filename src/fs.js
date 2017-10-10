@@ -9,6 +9,10 @@ export const readFile = filename => readFileAsync(path.resolve(filename), 'utf8'
 export const writeFile = (filename, content) => writeFileAsync(filename, content);
 
 export const toStdout = (output) => {
+  if (process.env.NODE_ENV === 'test') {
+    return output;
+  }
+
   process.stdout.write(output);
   return true;
 };

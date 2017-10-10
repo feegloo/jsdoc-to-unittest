@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Prettifier matches snapshot 1`] = `
+"function abc() {
+  let x = 2,
+    y = 10;
+  if (true) {
+  }
+  return 2, 10;
+}
+"
+`;

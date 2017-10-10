@@ -1,10 +1,9 @@
 import escodegen from 'escodegen';
 import doctrine from 'doctrine';
+import * as acorn from 'acorn';
+import * as walk from 'acorn/dist/walk';
 import { toResult, stripComments } from './utils';
-import { getPath, parseKey } from './analyzer';
-
-const acorn = require('acorn');
-const walk = require('acorn/dist/walk');
+import { getPath } from './analyzer';
 
 function getLines(code) {
   const lines = code.split(/[\n]+/);
@@ -31,21 +30,9 @@ function parseExample({ obj, description: code, returns }) {
 
   try {
     const { lines, commentedOutLines } = getLines(code);
-    const ast = acorn.parse(lines[lines.length - 1], {
+    acorn.parse(lines[lines.length - 1], {
       onComment: comments,
     });
-
-    walk.simple(ast, {
-      CallExpression(node) {
-        data.name = node.callee.name;
-      },
-    });
-
-    if (data.name === undefined || data.name === '') {
-      try {
-        data.name = getPath(code).pop();
-      } catch (ex) {}
-    }
 
     const lineComments = comments.filter(({ type }) => type === 'Line');
 
@@ -113,7 +100,7 @@ export default (code) => {
 
       if (examples.length && obj.name === undefined) {
         try {
-          obj.name = parseKey(examples[0].code).fullPath.pop();
+          obj.name = getPath(examples[0].code).pop().pop();
         } catch (ex) {}
       }
 

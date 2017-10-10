@@ -1,6 +1,6 @@
 import { evaluate } from './utils';
 
-function chainableProxy(handlers) {
+function chainableProxy(handlers) { // fixme: merge to intercept
   const traps = {};
   let instance;
   for (const [trap, func] of Object.entries(handlers)) {
@@ -22,18 +22,25 @@ function intercept(ret) {
     path: [],
     access: [],
     calls: 0,
-    fullPath: [],
   };
   let current = null;
-
-  let lastAccessed = '';
   let included = false;
-  return chainableProxy({
+  const instance = chainableProxy({
     apply(target, thisArg, argumentsList) {
-      current.fullPath.push(lastAccessed, '(', ...argumentsList, ')');
+      if (argumentsList.some(item => item === instance)) {
+        ret.pop();
+        current = ret[ret.length - 1];
+      }
+
       current.calls += 1;
       current.access.push('call', argumentsList.length);
       target.apply(thisArg, argumentsList);
+    },
+    construct(target, argumentsList) {
+      if (argumentsList.some(item => item === instance)) {
+        ret.pop();
+        current = ret[ret.length - 1];
+      }
     },
     has() {
       current = JSON.parse(JSON.stringify(obj));
@@ -57,19 +64,26 @@ function intercept(ret) {
         };
       }
 
+      current.path.push(key);
       if (!included) {
         included = true;
         current.access.push('access');
       } else {
         current.access.push('get');
       }
-
-      lastAccessed = key;
-      current.path.push(key);
-      current.fullPath.push(key);
     },
   });
+
+  return instance;
 }
+
+export const parseKey = (exp) => {
+  const ret = [];
+  evaluate(`with(s){\n${exp}\n}`, {
+    s: intercept(ret),
+  });
+  return ret;
+};
 
 export function getPath(func) {
   return parseKey(func).reduce((acc, { path }) => {
@@ -84,7 +98,7 @@ export function getPath(func) {
 export function isCallable(func, toObserve, all = false) {
   return parseKey(func)
     .filter(({ path }) => toObserve.includes(path.join('.')))
-    [all ? 'every' : 'some'](({ calls }) => calls > 0);
+    [all ? 'every' : 'some'](({ calls }) => calls > 0); // eslint-disable-line no-unexpected-multiline
 }
 
 function getFromScope(path, _eval, defaults) {
@@ -106,7 +120,7 @@ export function fallToGlobal(target, _eval, oldKey = '') {
 
       if (Reflect.has(target, key)) {
         const newTarget = target[key];
-        if (typeof newTarget !== 'object') {
+        if (typeof newTarget !== 'object' && typeof newTarget !== 'function') {
           return newTarget;
         }
 
@@ -117,14 +131,6 @@ export function fallToGlobal(target, _eval, oldKey = '') {
     },
   });
 }
-
-export const parseKey = (exp) => {
-  const ret = [];
-  evaluate(`with(s){\n${exp}\n}`, {
-    s: intercept(ret),
-  });
-  return ret;
-};
 
 export function listAccesses(code, filter = []) {
   try {

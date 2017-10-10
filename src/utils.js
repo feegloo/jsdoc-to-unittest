@@ -1,4 +1,4 @@
-import { parseKey } from './analyzer';
+// import { parseKey } from './analyzer';
 
 export function toResult(str) {
   return str.replace(/^[;]*|[;]*$/g, '');
@@ -36,31 +36,11 @@ const reg = /[\n;]/;
 
 export const stripComments = str => str.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
 
-function buildPath({ path, access }) {
-  let str = '';
-  access.shift();
-
-  path.forEach((part, i) => {
-    if (isNaN(Number(part))) {
-      str += (i === 0 ? '' : '.');
-      str += part;
-    } else {
-      str += (i === 0 ? '' : '[\'');
-      str += part;
-      str += (i === 0 ? '' : '\']');
-    }
-
-    const type = access.shift();
-    if (type === 'call') {
-      access.shift();
-      str += '()';
-    }
-  });
-
-  return str;
-}
-
 export function wrap(src, withMock) { // todo: handle primitive returns
+  if (typeof src !== 'string') {
+    return '';
+  }
+
   if (isFunction(src)) {
     return withMock ? `mock(() => ${src})` : src;
   }
@@ -69,10 +49,12 @@ export function wrap(src, withMock) { // todo: handle primitive returns
     return '';
   }
 
-  const paths = parseKey(src);
-  if (paths.length === 1) {
-  //  return withMock ? `mock(() => ${buildPath(paths[0])})` : buildPath(paths[0]);
-  }
+  // try {
+  //   const paths = parseKey(src);
+  //   if (paths.length === 1) {
+  //     //  return withMock ? `mock(() => ${buildPath(paths[0])})` : buildPath(paths[0]);
+  //   }
+  // } catch (ex) {}
 
   if (reg.test(src)) {
     const lines = src.split(reg)
@@ -86,7 +68,6 @@ export function wrap(src, withMock) { // todo: handle primitive returns
       if (!validateSyntax(wrappedFunc).ex) {
         return withMock ? `mock(${wrappedFunc})` : wrappedFunc;
       }
-
     }
 
     const joined = lines.join('').replace(/;*$|\/{2,}.*$/g, '').trim();

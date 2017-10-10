@@ -29,7 +29,6 @@ const func3 = `
 `;
 
 function exec(src) {
-  console.log(wrap(src));
   return eval(wrap(src));
 }
 
@@ -47,13 +46,16 @@ describe('wrap', () => {
   });
 
   test('clever wrapping', () => {
-    expect(exec(`easy.utils.each([1, 2, 3], function (value, index) {
+    expect(wrap(`easy.utils.each([1, 2, 3], function (value, index) {
       easy.console.log(index, value);
-    });`)).not.toBe();
+    });`)).toBe('easy.utils.each([1, 2, 3], function (value, index) {      easy.console.log(index, value)    })');
   });
 
   test('never throws', () => {
     expect(wrap(false)).toBe('');
+    expect(wrap('')).toBe('');
+    expect(wrap()).toBe('');
+    expect(wrap(Function)).toBe('');
   });
 });
 
@@ -96,5 +98,23 @@ describe('#assertAccess', () => {
 });
 
 describe('#evaluate', () => {
+  test('evaluates expression', () => {
+    expect(evaluate('2 + 2')).toBe(undefined);
+  });
 
+  test('sloppy by default', () => {
+    expect(() => evaluate('with({}){}')).not.toThrow();
+  });
+
+  test('accepts arguments mode is supported', () => {
+    expect(evaluate('return a + b', { a: 1, b: 5 }, true)).toBe(6);
+  });
+
+  test('strict mode is supported', () => {
+    expect(() => evaluate('with({}){}', {}, true)).toThrow();
+  });
+
+  test('returns value', () => {
+    expect(evaluate('return 2 + 2')).toBe(4);
+  });
 });

@@ -18,6 +18,37 @@ describe('#parseKey', () => {
       access: ['access', 'get', 'get', 'call', 2],
       path: ['foo', 'bar', 'baz'],
     }]);
+
+    expect(parseKey('foo.bar.baz(1, 2);foo.baz.baz.boo')).toEqual([
+      {
+        calls: 1,
+        access: ['access', 'get', 'get', 'call', 2],
+        path: ['foo', 'bar', 'baz'],
+      },
+      {
+        calls: 0,
+        access: ['access', 'get', 'get', 'get'],
+        path: ['foo', 'baz', 'baz', 'boo'],
+      },
+    ]);
+
+    expect(parseKey('easy.utils.isDate(new Date()); // true')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 1],
+      path: ['easy', 'utils', 'isDate'],
+    }]);
+
+    expect(parseKey('easy.utils.isDate(easy); // true')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 1],
+      path: ['easy', 'utils', 'isDate'],
+    }]);
+
+    expect(parseKey('easy.utils.isDate(new Date(new Date())); // true')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 1],
+      path: ['easy', 'utils', 'isDate'],
+    }]);
   });
 
   test('nested', () => {

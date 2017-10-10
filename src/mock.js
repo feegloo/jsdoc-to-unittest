@@ -11,7 +11,7 @@ export default function mock(func, mocks, _eval) {
       if (arr.length === i + 1) {
         const values = new Array(accesses.length).fill({});
         Reflect.defineProperty(cur, key, {
-          configurable: false,
+          enumerable: true,
           set(_value) {
             const toCompare = [..._value.access].join('');
 
@@ -33,7 +33,7 @@ export default function mock(func, mocks, _eval) {
       } else if (key in cur) {
         cur = cur[key];
       } else {
-        cur[key] = {};
+        const ref = cur[key] = () => ref; // eslint-disable-line no-multi-assign
         cur = cur[key];
       }
     });

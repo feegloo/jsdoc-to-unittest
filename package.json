@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest tests/**",
-    "lint": "eslint --cache **/*.js",
+    "lint": "eslint --cache {src,tests}/**/*.js",
     "build": "babel-node index.js"
   },
   "keywords": [],
@@ -32,12 +32,25 @@
   },
   "jest": {
     "collectCoverageFrom": [
-      "src/**/*.js"
+      "src/**/*.js",
+      "!src/fs.js"
     ],
     "collectCoverage": true,
     "cacheDirectory": ".cache/",
+    "modulePaths": [
+      "<rootDir>/src"
+    ],
+    "moduleDirectories": [
+      "node_modules"
+    ],
     "moduleFileExtensions": [
-      "js"
+      "js",
+      "json"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/fixtures/",
+      "/__mocks__/"
     ],
     "moduleNameMapper": {
       "src/(.*)": "<rootDir>/src/$1.js",
