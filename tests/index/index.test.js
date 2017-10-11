@@ -31,15 +31,12 @@ describe('#index', () => {
   });
 
   test('jest passes', async () => {
-    const name = path.resolve(__dirname, `${Math.random().toString(36).slice(2)}.test.js`);
+    const name = path.resolve(__dirname, `trash-${Math.random().toString(36).slice(2)}.test.js`);
     const out = await spawn('contains.js');
     await writeFileAsync(name, out);
     let passed = true;
     try {
-      await execFile(babelNode, [
-        path.resolve(__dirname, '../../node_modules/.bin/jest'),
-        name,
-      ]);
+      await execFile(path.resolve(__dirname, '../../node_modules/.bin/jest'), [name]);
     } catch (ex) {
       passed = ex;
     }

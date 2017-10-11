@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest tests/**",
     "lint": "eslint --cache {src,tests}/**/*.js",
-    "build": "babel-node index.js"
+    "build": "babel-node index.js",
+    "cleanup": "bin/cleanup"
   },
   "keywords": [],
   "author": "Jakub Rożek",
@@ -35,6 +36,14 @@
       "src/**/*.js",
       "!src/fs.js"
     ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 90,
+        "functions": 90,
+        "lines": 90,
+        "statements": 90
+      }
+    },
     "collectCoverage": true,
     "cacheDirectory": ".cache/",
     "modulePaths": [
@@ -50,7 +59,9 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/fixtures/",
-      "/__mocks__/"
+      "/__mocks__/",
+      "<rootDir>/*.js",
+      "trash-*.test.js"
     ],
     "moduleNameMapper": {
       "src/(.*)": "<rootDir>/src/$1.js",

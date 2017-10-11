@@ -86,29 +86,13 @@ export const parseKey = (exp) => {
 };
 
 export function getPath(func) {
-  return parseKey(func).reduce((acc, { path }) => {
-    if (path.length) {
-      acc.push(path);
-    }
-
-    return acc;
-  }, []);
+  return parseKey(func).reduce((acc, { path }) => [...acc, path], []);
 }
 
 export function isCallable(func, toObserve, all = false) {
   return parseKey(func)
     .filter(({ path }) => toObserve.includes(path.join('.')))
     [all ? 'every' : 'some'](({ calls }) => calls > 0); // eslint-disable-line no-unexpected-multiline
-}
-
-function getFromScope(path, _eval, defaults) {
-  try {
-    return _eval(path);
-  } catch (ex) {
-    if (!(ex instanceof SyntaxError)) {
-      return defaults;
-    }
-  }
 }
 
 export function fallToGlobal(target, _eval, oldKey = '') {
@@ -127,7 +111,9 @@ export function fallToGlobal(target, _eval, oldKey = '') {
         return fallToGlobal(newTarget, _eval, `${oldKey}.${key}`);
       }
 
-      return getFromScope(`${oldKey}.${key}`.slice(1), _eval);
+      try {
+        return _eval(`${oldKey}.${key}`.slice(1));
+      } catch (ex) {}
     },
   });
 }
@@ -144,13 +130,7 @@ export function listAccesses(code, filter = []) {
       parsed = parsed.filter(({ path }) => paths.includes(path.join('.')));
     }
 
-    return parsed.reduce((acc, { access }) => {
-      if (access.length) {
-        acc.push(access);
-      }
-
-      return acc;
-    }, []);
+    return parsed.reduce((acc, { access }) => [...acc, access], []);
   } catch (ex) {}
 
   return [];

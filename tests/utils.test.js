@@ -32,7 +32,7 @@ function exec(src) {
   return eval(wrap(src));
 }
 
-describe('wrap', () => {
+describe('#wrap', () => {
   test('works', () => {
     expect(exec('call()')).toBe('2');
     expect(exec('call();')).toBe('2');
@@ -45,6 +45,15 @@ describe('wrap', () => {
     expect(exec(func3)).toBe('2');
   });
 
+  test('mock functions', () => {
+    expect(wrap.bind({ call }, 'call', true)()).toBe('mock(call)');
+    expect(wrap('call()', true)).toBe('mock(() => call())');
+    expect(wrap('call()\ncall2()', true)).toBe('mock(() => {\n' +
+      '        call();\n' +
+      '        return (call2());\n' +
+      '      })');
+  });
+
   test('clever wrapping', () => {
     expect(wrap(`easy.utils.each([1, 2, 3], function (value, index) {
       easy.console.log(index, value);
@@ -54,6 +63,7 @@ describe('wrap', () => {
   test('never throws', () => {
     expect(wrap(false)).toBe('');
     expect(wrap('')).toBe('');
+    expect(wrap('--')).toBe('');
     expect(wrap()).toBe('');
     expect(wrap(Function)).toBe('');
   });

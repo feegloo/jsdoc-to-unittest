@@ -16,15 +16,12 @@ function getLines(code) {
   };
 }
 
-function parseExample({ obj, description: code, returns }) {
+function parseExample({ description: code, returns }) {
   const comments = [];
   const data = {
     get name() { return this.obj; },
-    set name(value) {
-      obj.name = value;
-      return true;
-    },
     code,
+    type: 'default',
     result: '',
   };
 
@@ -42,12 +39,7 @@ function parseExample({ obj, description: code, returns }) {
       try {
         data.result = JSON.parse(data.result);
         data.type = 'value';
-      } catch (ex) {
-        data.type = 'default';
-      }
-    } else {
-      data.result = returns;
-      data.type = 'instance';
+      } catch (ex) {}
     }
 
     if (commentedOutLines.length > 1) {
@@ -56,6 +48,21 @@ function parseExample({ obj, description: code, returns }) {
       data.code = commentedOutLines.join('');
     }
   } catch (ex) {}
+
+  if (data.type === 'default' && returns) {
+    data.type = 'instance';
+    if (Array.isArray(returns.elements)) {
+      data.result = returns.elements.map(({ type, name }) => {
+        if (type === 'AllLiteral') {
+          return '*';
+        }
+
+        return name;
+      });
+    } else {
+      data.result = [returns.name];
+    }
+  }
 
   return data;
 }
@@ -88,10 +95,9 @@ export default (code) => {
     exports: Object.values(funcs),
     imports: Object.keys(funcs),
     samples: parsed.map(({ tags }) => {
-      const returns = tags.find(({ title }) => title === 'return');
+      const returns = (tags.find(({ title }) => title === 'returns') || {}).type;
       const obj = {
         name: (tags.find(({ title }) => title === 'name') || {}).name,
-        member: tags.find(({ title }) => title === 'memberof'),
       };
 
       const examples = tags

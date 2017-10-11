@@ -1,5 +1,6 @@
 import {
   parseKey,
+  fallToGlobal,
   getPath,
   isCallable,
   listAccesses,
@@ -84,6 +85,20 @@ describe('#parseKey', () => {
         calls: 1,
         path: ['xyz'],
       }]);
+
+    expect(parseKey('foo.bar() + +xyz()')).toEqual([
+      {
+        access: ['access', 'get', 'call', 0],
+        calls: 1,
+        path: ['foo', 'bar'],
+      },
+      {
+        access: ['access', 'call', 0],
+        calls: 1,
+        path: ['xyz'],
+      }]);
+
+    expect(() => parseKey('foo.bar[Symbol.hasPrimitive]()')).not.toThrow();
   });
 
   test('mixed', () => {
@@ -116,6 +131,18 @@ describe('#listAccesses', () => {
   test('detects correct number of arguments', () => {
     expect(listAccesses('frosmo.xyz().aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
       ['access', 'get', 'call', 0, 'get', 'call', 3],
+    ]);
+  });
+
+  test('has optional filter', () => {
+    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', [])).toEqual([
+      ['access', 'get', 'call', 0],
+      ['access', 'get', 'get', 'call', 3],
+    ]);
+
+    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)')).toEqual([
+      ['access', 'get', 'call', 0],
+      ['access', 'get', 'get', 'call', 3],
     ]);
   });
 
@@ -178,5 +205,11 @@ describe('#isCallable', () => {
   test('multiple chains with all flag', () => {
     expect(isCallable('foo.bar();foo.bar', ['foo.bar'], true)).toBe(false);
     expect(isCallable('foo.bar();foo.bar()', ['foo.bar'], true)).toBe(true);
+  });
+});
+
+describe('#fallToGlobal', () => {
+  test('gives upon SyntaxError', () => {
+    expect(fallToGlobal({}, eval)['---;;;;---']).toBe(undefined);
   });
 });

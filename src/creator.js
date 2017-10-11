@@ -1,18 +1,18 @@
 import prettify from './prettifier';
 import { wrap, validateSyntax } from './utils';
-import { writeFile, toStdout } from './fs';
+import { readFile, writeFile, toStdout } from './fs';
 
 class TestItem {
   constructor({
     name,
     code,
-    type,
+    type = 'no-throw',
     result,
     imports,
   }) {
     this.name = name;
     this.code = code;
-    this.type = type || code.includes('return') ? '' : 'no-throw';
+    this.type = type;
     this.result = result;
     this.imports = imports;
     this.valid = false;
@@ -28,11 +28,11 @@ class TestItem {
   renderEquality() {
     switch (this.type) {
       case 'instance':
-        return `toBeInstanceOf(${this.result}); // fixme: could be replaced with something more specific`;
+        return `toBeOneInstanceOf(${JSON.stringify(this.result)}); // fixme: could be replaced with something more specific`;
       case 'value':
         return `toBe(${this.result});`;
       case 'no-throw':
-        return 'not.toThrow();';
+        return 'not.toThrow(); // fixme: could be replaced with something more specific';
       default:
         return `toEqual(${this.result});`;
     }
@@ -64,6 +64,7 @@ class TestItem {
     switch (hint) {
       case 'string':
         return this.output;
+      /* istanbul ignore next */
       default:
         return Object.prototype.toString.call(this);
     }
@@ -81,6 +82,8 @@ class Test {
     samples,
     imports,
     exports,
+    partials = [],
+    namedImports = false,
   }) {
     this.filename = filename;
     this.exportsFileName = filename.replace(/\.js$/, '.exports.js');
@@ -88,6 +91,8 @@ class Test {
     this.samples = samples;
     this.imports = imports;
     this.exports = exports;
+    this.partials = partials;
+    this.namedImports = namedImports;
     this.stats = {
       total: 0,
       valid: 0,
@@ -96,18 +101,18 @@ class Test {
 
   printImports() {
     if (this.stdout) return '';
-    // return `import {
-    //   ${this.imports.map(name => name).join(',\n')}
-    // } from './${this.exportsFileName}';
-    // `;
+    if (this.namedImports) {
+      return `import {
+        ${this.imports.map(name => name).join(',\n')}
+      } from './${this.exportsFileName}';
+      `;
+    }
+
     return `import * as __imports__ from './${this.exportsFileName}';\nglobal.__imports__ = __imports__;\n`;
   }
 
   printPartials() {
-    return Promise.all([
-      // readFile('./src/partials/constants.js'),
-      // readFile('./src/partials/mock.js'),
-    ]);
+    return Promise.all(this.partials.map(partial => readFile(partial)));
   }
 
   printExports() {
@@ -134,6 +139,10 @@ class Test {
   }
 
   printStats() {
+    if (this.stats.valid === 0) {
+      return '// Valid tests: 0%';
+    }
+
     return `// Valid tests: ${((this.stats.valid / this.stats.total) * 100).toFixed(2)}%`;
   }
 
@@ -152,7 +161,7 @@ class Test {
     try {
       output = await this.print();
     } catch (ex) {
-      output = ex.toString();
+      output = JSON.stringify(ex.message.toString());
     }
 
     if (this.stdout) {

@@ -24,9 +24,9 @@ export function validateSyntax(code) {
   };
 }
 
-function isFunction(str) {
+function isFunction(str, scope = {}) {
   try {
-    return typeof evaluate(`return (${str})`) === 'function';
+    return typeof evaluate(`return (${str})`, scope) === 'function';
   } catch (ex) {}
 
   return false;
@@ -41,8 +41,8 @@ export function wrap(src, withMock) { // todo: handle primitive returns
     return '';
   }
 
-  if (isFunction(src)) {
-    return withMock ? `mock(() => ${src})` : src;
+  if (isFunction(src, this)) {
+    return withMock ? `mock(${src})` : src;
   }
 
   if (validateSyntax(src).ex !== null) {

@@ -1,0 +1,162 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Creator empty 1`] = `
+"// Valid tests: 0%
+"
+`;
+
+exports[`Creator fail 1`] = `
+"\\"Cannot read property 'map' of null\\";
+"
+`;
+
+exports[`Creator handles invalid examples 1`] = `
+"export function mayContain(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+
+// Valid tests: 0%
+
+describe('mayContain', () => {
+  test('example 1', () => {
+    throw new SyntaxError('missing ) after argument list');
+    /* mayContain('foo', 'fooo'); // true or false */
+  });
+});
+"
+`;
+
+exports[`Creator write to stdout #2 1`] = `
+"export function mayContain(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+
+// Valid tests: 100.00%
+
+describe('mayContain', () => {
+  test('example 1', () => {
+    expect(mayContain('foo', 'fooo')).toBeOneInstanceOf(['Boolean']); // fixme: could be replaced with something more specific
+  });
+});
+"
+`;
+
+exports[`Creator write to stdout #3 1`] = `
+"export function each(obj, iterator, context) {
+  _forEach(obj, iterator, context);
+}
+
+// Valid tests: 75.00%
+
+describe('each', () => {
+  test('example 1', () => {
+    expect(
+      mock(() =>
+        easy.utils.each([1, 2, 3], (value, index) => {
+          easy.console.log(index, value);
+        }),
+      ),
+    ).toEqual();
+  });
+
+  test('example 2', () => {
+    expect(
+      mock(() =>
+        easy.utils.each({ foo: 'bar', baz: 'bar' }, (value, key) => {
+          easy.console.log(key, value);
+        }),
+      ),
+    ).toEqual();
+  });
+
+  test('example 3', () => {
+    throw new SyntaxError('Unexpected token var');
+    /* var utils = {
+    power: function (base, exponent) {
+        return Math.pow(base, exponent);
+    }
+};
+
+easy.utils.each([1, 2, 3], function (value, index) {
+    // \\"this\\" references the utils object where the function \\"power\\" is available
+    easy.console.log(index, value, this.power(value));
+}, utils); */
+  });
+
+  test('example 4', () => {
+    expect(
+      mock(() =>
+        easy.utils.each({ foo: 'bar', baz: 'bar' }, function (value, key) {
+          easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
+        }),
+      ),
+    ).toEqual();
+  });
+});
+"
+`;
+
+exports[`Creator write to stdout 1`] = `
+"export function contains(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+
+// Valid tests: 100.00%
+
+describe('contains', () => {
+  test('example 1', () => {
+    expect(contains('foo', 'fooo')).toBe(false);
+  });
+
+  test('example 2', () => {
+    expect(contains('hey', 'ey')).toBe(true);
+  });
+});
+"
+`;
+
+exports[`Creator writes to file - named imports 1`] = `
+Array [
+  "export function contains(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+",
+  "// Valid tests: 100.00%
+import { contains } from './trash-ar88scjoshu.exports.js';
+
+describe('contains', () => {
+  test('example 1', () => {
+    expect(contains('foo', 'fooo')).toBe(false);
+  });
+
+  test('example 2', () => {
+    expect(contains('hey', 'ey')).toBe(true);
+  });
+});
+",
+]
+`;
+
+exports[`Creator writes to file 1`] = `
+Array [
+  "export function contains(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+",
+  "// Valid tests: 100.00%
+import * as __imports__ from './trash-arbb88scjoshu.exports.js';
+
+global.__imports__ = __imports__;
+
+describe('contains', () => {
+  test('example 1', () => {
+    expect(contains('foo', 'fooo')).toBe(false);
+  });
+
+  test('example 2', () => {
+    expect(contains('hey', 'ey')).toBe(true);
+  });
+});
+",
+]
+`;

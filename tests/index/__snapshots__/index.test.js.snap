@@ -9,11 +9,11 @@ exports[`#index example-file 1 matches snapshot 1`] = `
 
 describe('contains', () => {
   test('example 1', () => {
-    expect(contains('foo', 'fooo')).toEqual(false);
+    expect(contains('foo', 'fooo')).toBe(false);
   });
 
   test('example 2', () => {
-    expect(contains('hey', 'ey')).toEqual(true);
+    expect(contains('hey', 'ey')).toBe(true);
   });
 });
 "

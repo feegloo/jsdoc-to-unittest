@@ -1,0 +1,2 @@
+#!/bin/sh
+rm ./tests/index/trash-*.test.js

@@ -22,4 +22,4 @@ lint:
 jest:
   stage: test
   script:
-    - yarn test --coverage
+    - yarn test --maxWorkers 2

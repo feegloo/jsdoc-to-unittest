@@ -4,7 +4,6 @@
     "plugin:jest/recommended",
     "airbnb-base"
   ],
-
   "plugins": [
     "jest"
   ],
@@ -12,6 +11,7 @@
     "jest": true
   },
   "rules": {
+    "function-paren-newline": "off",
     "no-new-func": "off",
     "no-eval": "warn",
     "no-param-reassign": "warn",
@@ -21,6 +21,9 @@
     "class-methods-use-this": "off"
   },
   "settings": {
-    "import/resolver": ["jest", "node"]
+    "import/resolver": [
+      "jest",
+      "node"
+    ]
   }
 }
