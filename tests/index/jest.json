@@ -1,15 +1,13 @@
- {
-  "collectCoverageFrom": [
-    "src/**/*.js"
-  ],
-  "collectCoverage": true,
-    "cacheDirectory": ".cache/",
-    "moduleFileExtensions": [
+{
+  "collectCoverage": false,
+  "moduleFileExtensions": [
     "js"
   ],
-  "moduleNameMapper": {
-  "src/(.*)": "<rootDir>/src/$1.js",
-  "mocks/(.*)": "<rootDir>/__mocks__/$1.js"
-  },
-  "setupTestFrameworkScriptFile": "<rootDir>/jest-setup.js"
+   "testPathIgnorePatterns": [
+     "/node_modules/",
+     "/fixtures/",
+     "/tests/",
+     "!tests/index/trash-*.test.js"
+   ],
+  "setupTestFrameworkScriptFile": "jest-setup.js"
 }

@@ -36,7 +36,10 @@ describe('#index', () => {
     await writeFileAsync(name, out);
     let passed = true;
     try {
-      await execFile(path.resolve(__dirname, '../../node_modules/.bin/jest'), [name]);
+      await execFile(path.resolve(__dirname, '../../node_modules/.bin/jest'), [
+        '--config tests/index/jest.json',
+        name,
+      ]);
     } catch (ex) {
       passed = ex;
     }

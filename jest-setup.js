@@ -26,7 +26,6 @@ expect.extend({
       pass: false,
     };
 
-
     try {
       ret.pass = objs.some(obj => lowerCased.includes(Object.prototype.toString(obj)));
       if (ret.pass === true) {
