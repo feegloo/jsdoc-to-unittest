@@ -37,7 +37,6 @@ describe('Creator', () => {
 
   test('write to stdout #2', async () => {
     expect(await create({
-      filename: '',
       stdout: true,
       ...parse(
         await readFileAsync(path.resolve(__dirname, 'fixtures/invalid-2.js'), 'utf-8'),
@@ -52,6 +51,18 @@ describe('Creator', () => {
       ...parse(
         await readFileAsync(path.resolve(__dirname, 'fixtures/each.js'), 'utf-8'),
       ),
+    })).toMatchSnapshot();
+  });
+
+  test('write to stdout #4', async () => {
+    expect(await create({
+      filename: '',
+      stdout: true,
+      imports: ['contains'],
+      exports: ['function contains(){}'],
+      samples: [
+        { examples: [] },
+      ],
     })).toMatchSnapshot();
   });
 

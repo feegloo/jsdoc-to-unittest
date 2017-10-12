@@ -57,7 +57,36 @@ describe('Parser', () => {
 
     expect(samples[0].examples).toEqual([
       {
-        code: "contains('hey', 'ey');", name: undefined, result: ['*', 'boolean'], type: 'instance',
+        code: "contains('hey', 'ey');", name: 'contains', result: ['*', 'boolean'], type: 'instance',
+      }],
+    );
+  });
+
+  test('detects mocks', () => {
+    const { samples } = parse(`/**
+     * @name contains
+     *
+     * @example
+     * contains('hey', 'ey'); // true
+     * @mock { 'contains(1,2)': false }
+     *
+     * @param str1
+     * @param str2
+     * @returns {*|boolean}
+     */
+    function contains(str1, str2) {
+      return str1 && str1.indexOf(str2) !== -1;
+    }`);
+
+    expect(samples[0].examples).toEqual([
+      {
+        code: "contains('hey', 'ey'); // true",
+        mocks: {
+          'contains(1,2)': false,
+        },
+        name: 'contains',
+        result: true,
+        type: 'value',
       }],
     );
   });

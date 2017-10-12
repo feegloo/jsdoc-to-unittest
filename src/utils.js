@@ -24,7 +24,7 @@ export function validateSyntax(code) {
   };
 }
 
-function isFunction(str, scope = {}) {
+export function isFunction(str, scope = {}) {
   try {
     return typeof evaluate(`return (${str})`, scope) === 'function';
   } catch (ex) {}
@@ -78,7 +78,7 @@ export function wrap(src, withMock) { // todo: handle primitive returns
   return withMock ? `mock(() => ${formattedSrc})` : formattedSrc;
 }
 
-export const isPrimitive = sth => typeof sth !== 'object' && typeof sth !== 'function';
+export const isPrimitive = sth => sth === null || (typeof sth !== 'object' && typeof sth !== 'function');
 
 export const assertAccess = target => new Proxy(() => {}, {
   has: () => true,

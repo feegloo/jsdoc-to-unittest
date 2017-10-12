@@ -96,6 +96,13 @@ easy.utils.each([1, 2, 3], function (value, index) {
 "
 `;
 
+exports[`Creator write to stdout #4 1`] = `
+"export function contains() {}
+
+// Valid tests: 0%
+"
+`;
+
 exports[`Creator write to stdout 1`] = `
 "export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;

@@ -4,13 +4,13 @@ exports[`Parser happy path works 1`] = `
 Array [
   Object {
     "code": "contains('foo', 'fooo'); // false",
-    "name": undefined,
+    "name": "contains",
     "result": false,
     "type": "value",
   },
   Object {
     "code": "contains('hey', 'ey'); // true;",
-    "name": undefined,
+    "name": "contains",
     "result": true,
     "type": "value",
   },
@@ -23,7 +23,7 @@ Array [
     "code": "easy.utils.each([1, 2, 3], function (value, index) {
     easy.console.log(index, value);
 });",
-    "name": undefined,
+    "name": "each",
     "result": "",
     "type": "default",
   },
@@ -31,7 +31,7 @@ Array [
     "code": "easy.utils.each({foo: 'bar', baz: 'bar'}, function (value, key) {
     easy.console.log(key, value);
 });",
-    "name": undefined,
+    "name": "each",
     "result": "",
     "type": "default",
   },
@@ -46,7 +46,7 @@ easy.utils.each([1, 2, 3], function (value, index) {
     // \\"this\\" references the utils object where the function \\"power\\" is available
     easy.console.log(index, value, this.power(value));
 }, utils);",
-    "name": undefined,
+    "name": "each",
     "result": "",
     "type": "default",
   },
@@ -55,7 +55,7 @@ easy.utils.each([1, 2, 3], function (value, index) {
     // \\"this\\" references the global object where the built-in String object is available
     easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
 });",
-    "name": undefined,
+    "name": "each",
     "result": "",
     "type": "default",
   },

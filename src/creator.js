@@ -6,7 +6,7 @@ class TestItem {
   constructor({
     name,
     code,
-    type = 'no-throw',
+    type,
     result,
     imports,
   }) {
@@ -31,8 +31,8 @@ class TestItem {
         return `toBeOneInstanceOf(${JSON.stringify(this.result)}); // fixme: could be replaced with something more specific`;
       case 'value':
         return `toBe(${this.result});`;
-      case 'no-throw':
-        return 'not.toThrow(); // fixme: could be replaced with something more specific';
+      // case 'no-throw':
+      //   return 'not.toThrow(); // fixme: could be replaced with something more specific';
       default:
         return `toEqual(${this.result});`;
     }
@@ -57,6 +57,7 @@ class TestItem {
       return ex instanceof ReferenceError || (ex instanceof TypeError && ex.message.includes('null or undefined'));
     }
 
+    // istanbul ignore next
     return false;
   }
 

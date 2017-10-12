@@ -1,4 +1,4 @@
-import { wrap, assertAccess, stripComments, evaluate } from 'src/utils';
+import { toResult, isFunction, wrap, assertAccess, stripComments, evaluate, isPrimitive } from 'src/utils';
 
 function call() { // eslint-disable-line no-unused-vars
   return '2';
@@ -127,4 +127,38 @@ describe('#evaluate', () => {
   test('returns value', () => {
     expect(evaluate('return 2 + 2')).toBe(4);
   });
+});
+
+describe('#isPrimitive', () => {
+  test('returns true for primitive type', () => {
+    expect(isPrimitive('d')).toBe(true);
+    expect(isPrimitive(2)).toBe(true);
+    expect(isPrimitive(null)).toBe(true);
+    expect(isPrimitive(undefined)).toBe(true);
+    expect(isPrimitive()).toBe(true);
+    expect(isPrimitive(Symbol('dd'))).toBe(true);
+    expect(isPrimitive(true)).toBe(true);
+  });
+
+  test('returns false for non-primitive type', () => {
+    /* eslint-disable no-new-wrappers */
+    expect(isPrimitive(new String('d'))).toBe(false);
+    expect(isPrimitive(new Number(2))).toBe(false);
+    expect(isPrimitive(new Boolean(2))).toBe(false);
+    /* eslint-enable no-new-wrappers */
+    expect(isPrimitive({})).toBe(false);
+    expect(isPrimitive(() => {})).toBe(false);
+  });
+});
+
+describe('#isFunction', () => {
+  expect(isFunction('[].forEach')).toBe(true);
+});
+
+describe('#toResult', () => {
+  expect(toResult(';[].forEach')).toBe('[].forEach');
+  expect(toResult(';[].forEach;;')).toBe('[].forEach');
+  expect(toResult('[].forEach')).toBe('[].forEach');
+  expect(toResult(';;[].forEach')).toBe('[].forEach');
+  expect(toResult(';;[].forEach;;')).toBe('[].forEach');
 });
