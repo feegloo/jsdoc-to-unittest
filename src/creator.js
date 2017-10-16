@@ -9,12 +9,14 @@ class TestItem {
     type,
     result,
     imports,
+    mocks,
   }) {
     this.name = name;
     this.code = code;
     this.type = type;
     this.result = result;
     this.imports = imports;
+    this.mocks = mocks;
     this.valid = false;
     this.output = this.print();
   }
@@ -39,7 +41,7 @@ class TestItem {
   }
 
   print() {
-    const test = this.printName(`expect(${wrap(this.code, this.undefined)}).${this.renderEquality()}`);
+    const test = this.printName(`expect(${wrap(this.code, JSON.stringify(this.mocks))}).${this.renderEquality()}`);
 
     const { ex } = validateSyntax(test);
     if (ex) {

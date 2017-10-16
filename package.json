@@ -7,7 +7,8 @@
     "test": "jest tests/**",
     "lint": "eslint --cache {src,tests}/**/*.js",
     "build": "babel-node index.js",
-    "cleanup": "bin/cleanup"
+    "config": "babel-node index.js --config",
+    "clean": "bin/clean"
   },
   "keywords": [],
   "author": "Jakub Rożek",
@@ -29,7 +30,8 @@
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
     "doctrine": "^2.0.0",
     "escodegen": "^1.9.0",
-    "prettier-eslint": "^8.2.0"
+    "prettier-eslint": "^8.2.0",
+    "yargs": "^9.0.1"
   },
   "jest": {
     "collectCoverageFrom": [

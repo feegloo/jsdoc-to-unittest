@@ -1,5 +1,6 @@
 import {
   parseKey,
+  parseKeyAsync,
   fallToGlobal,
   getPath,
   isCallable,
@@ -7,56 +8,63 @@ import {
 } from 'src/analyzer';
 
 describe('#parseKey', () => {
-  test('dot notated', () => {
+  test('getters', () => {
     expect(parseKey('foo.bar.baz')).toEqual([{
       calls: 0,
       access: ['access', 'get', 'get'],
       path: ['foo', 'bar', 'baz'],
+      feedback: [],
     }]);
 
-    expect(parseKey('foo.bar.baz(1, 2)')).toEqual([{
-      calls: 1,
-      access: ['access', 'get', 'get', 'call', 2],
+    expect(parseKey('foo[\'bar\'].baz')).toEqual([{
+      calls: 0,
+      access: ['access', 'get', 'get'],
       path: ['foo', 'bar', 'baz'],
+      feedback: [],
     }]);
+  });
 
+  test('getters and calls', () => {
     expect(parseKey('foo.bar.baz(1, 2);foo.baz.baz.boo')).toEqual([
       {
         calls: 1,
         access: ['access', 'get', 'get', 'call', 2],
         path: ['foo', 'bar', 'baz'],
+        feedback: [
+          { value: 1, type: 'number' },
+          { value: 2, type: 'number' },
+        ],
       },
       {
         calls: 0,
         access: ['access', 'get', 'get', 'get'],
         path: ['foo', 'baz', 'baz', 'boo'],
+        feedback: [],
       },
     ]);
+  });
 
-    expect(parseKey('easy.utils.isDate(new Date()); // true')).toEqual([{
+  test('calls with primitives', () => {
+    expect(parseKey('foo.bar.baz(1, 2)')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', 1],
-      path: ['easy', 'utils', 'isDate'],
-    }]);
-
-    expect(parseKey('easy.utils.isDate(easy); // true')).toEqual([{
-      calls: 1,
-      access: ['access', 'get', 'get', 'call', 1],
-      path: ['easy', 'utils', 'isDate'],
-    }]);
-
-    expect(parseKey('easy.utils.isDate(new Date(new Date())); // true')).toEqual([{
-      calls: 1,
-      access: ['access', 'get', 'get', 'call', 1],
-      path: ['easy', 'utils', 'isDate'],
+      access: ['access', 'get', 'get', 'call', 2],
+      path: ['foo', 'bar', 'baz'],
+      feedback: [
+        { value: 1, type: 'number' },
+        { value: 2, type: 'number' },
+      ],
     }]);
   });
 
-  test('nested', () => {
+  test('nested access', () => {
     expect(parseKey('foo[0].bar().baz(1, 2)')).toEqual([{
       path: ['foo', '0', 'bar', 'baz'],
       calls: 2,
       access: ['access', 'get', 'get', 'call', 0, 'get', 'call', 2],
+      feedback: [
+        { value: 1, type: 'number' },
+        { value: 2, type: 'number' },
+      ],
     }]);
 
     expect(parseKey('foo[0].bar(10, 12).baz(1, 2);baz.bar(10, 12);')).toEqual([
@@ -64,14 +72,53 @@ describe('#parseKey', () => {
         calls: 2,
         path: ['foo', '0', 'bar', 'baz'],
         access: ['access', 'get', 'get', 'call', 2, 'get', 'call', 2],
+        feedback: [
+          { value: 10, type: 'number' },
+          { value: 12, type: 'number' },
+          { value: 1, type: 'number' },
+          { value: 2, type: 'number' },
+        ],
       },
       {
         calls: 1,
         path: ['baz', 'bar'],
         access: ['access', 'get', 'call', 2],
+        feedback: [
+          { value: 10, type: 'number' },
+          { value: 12, type: 'number' },
+        ],
       },
     ]);
   });
+
+  test('calls with non-primitives', () => {
+    expect(parseKey('easy.utils.isDate(new Date()); // true')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 1],
+      path: ['easy', 'utils', 'isDate'],
+      feedback: [
+        { type: 'object', value: null },
+      ],
+    }]);
+
+    expect(parseKey('easy.utils.isDate(easy); // true')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 1],
+      path: ['easy', 'utils', 'isDate'],
+      feedback: [
+        { type: 'object', value: null },
+      ],
+    }]);
+
+    expect(parseKey('easy.utils.isDate(new Date(new Date())); // true')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', 1],
+      path: ['easy', 'utils', 'isDate'],
+      feedback: [
+        { type: 'object', value: null },
+      ],
+    }]);
+  })
 
   test('toPrimitive', () => {
     expect(parseKey('foo.bar() + xyz()')).toEqual([
@@ -79,11 +126,13 @@ describe('#parseKey', () => {
         access: ['access', 'get', 'call', 0],
         calls: 1,
         path: ['foo', 'bar'],
+        feedback: [],
       },
       {
         access: ['access', 'call', 0],
         calls: 1,
         path: ['xyz'],
+        feedback: [],
       }]);
 
     expect(parseKey('foo.bar() + +xyz()')).toEqual([
@@ -91,26 +140,40 @@ describe('#parseKey', () => {
         access: ['access', 'get', 'call', 0],
         calls: 1,
         path: ['foo', 'bar'],
+        feedback: [],
       },
       {
         access: ['access', 'call', 0],
         calls: 1,
         path: ['xyz'],
+        feedback: [],
       }]);
 
     expect(() => parseKey('foo.bar[Symbol.hasPrimitive]()')).not.toThrow();
   });
 
-  test('mixed', () => {
-    expect(parseKey('foo[\'bar\'].baz')).toEqual([{
-      calls: 0,
-      access: ['access', 'get', 'get'],
-      path: ['foo', 'bar', 'baz'],
-    }]);
-  });
-
   test('raises SyntaxError', () => {
     expect(() => parseKey(';;;-/\\\\--;;;')).toThrow(SyntaxError);
+  });
+});
+
+describe('#parseKeyAsync', () => {
+  test('analyzes promises as expected', async () => {
+    expect(await parseKeyAsync('obj.foo().then')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'call', 0],
+      path: ['obj', 'foo'],
+      special: 'Promise',
+      feedback: [],
+    }]);
+
+    expect(await parseKeyAsync('obj.foo().then(console.log).catch(console.log)')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'call', 0],
+      path: ['obj', 'foo'],
+      special: 'Promise',
+      feedback: [],
+    }]);
   });
 });
 
@@ -186,6 +249,54 @@ describe('#getPath', () => {
 
   test('throws SyntaxError', () => {
     expect(() => getPath('---')).toThrow(SyntaxError);
+  });
+
+  test('simple nested calls', () => {
+    function contains() {
+      return foo.bar.baz();
+    }
+
+    expect(getPath.call(func => eval(func), 'contains()')).toEqual([
+      ['contains'],
+      ['foo', 'bar', 'baz'],
+    ]);
+  });
+
+  test('nested calls', () => {
+    function forEach() {
+      return foo.bar.baz();
+    }
+
+    function contains() {
+      return forEach([1, 2]);
+    }
+
+    expect(getPath.call(func => eval(func), 'contains()')).toEqual([
+      ['contains'],
+      ['forEach'],
+      ['foo', 'bar', 'baz'],
+    ]);
+  });
+
+  test('\'inaccessible\' nested calls', () => {
+    function forEach(func) {
+      return func();
+    }
+
+    function contains() {
+      function context() {
+        return foo.bar.baz;
+      }
+
+      return forEach(context());
+    }
+
+    expect(getPath.call(func => eval(func), 'contains()')).toEqual([
+      ['contains'],
+      ['context'],
+      ['foo', 'bar', 'baz'],
+      ['forEach'],
+    ]);
   });
 });
 

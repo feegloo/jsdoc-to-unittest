@@ -122,4 +122,19 @@ describe('Creator', () => {
 
     expect(out).toMatchSnapshot();
   });
+
+  test('mocked', async () => {
+    expect(await create({
+      filename: '',
+      stdout: true,
+      namedImports: true,
+      ...parse(
+        await readFileAsync(path.resolve(__dirname, 'fixtures/mocked-easy.js'), 'utf-8'),
+      ),
+    })).toMatchSnapshot();
+  });
+
+  test('async', async () => {
+
+  });
 });

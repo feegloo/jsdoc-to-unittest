@@ -1,6 +1,6 @@
 /* global __imports__ */
 // eslint-disable-next-line import/prefer-default-export
-export function mock(func) {
+export function resolve(func) {
   const instance = new Proxy({}, {
     has: () => true,
     get(target, prop) {

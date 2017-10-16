@@ -1,4 +1,4 @@
-import { toResult, isFunction, wrap, assertAccess, stripComments, evaluate, isPrimitive } from 'src/utils';
+import { toResult, isFunction, wrap, assertAccess, stripComments, evaluate, evaluateAsync, isPrimitive } from 'src/utils';
 
 function call() { // eslint-disable-line no-unused-vars
   return '2';
@@ -46,12 +46,12 @@ describe('#wrap', () => {
   });
 
   test('mock functions', () => {
-    expect(wrap.bind({ call }, 'call', true)()).toBe('mock(call)');
-    expect(wrap('call()', true)).toBe('mock(() => call())');
-    expect(wrap('call()\ncall2()', true)).toBe('mock(() => {\n' +
+    expect(wrap.bind({ call }, 'call', JSON.stringify({}))()).toBe('mock(call, {})');
+    expect(wrap('call()', JSON.stringify({}))).toBe('mock(() => call(), {})');
+    expect(wrap('call()\ncall2()', JSON.stringify({}))).toBe('mock(() => {\n' +
       '        call();\n' +
       '        return (call2());\n' +
-      '      })');
+      '      }, {})');
   });
 
   test('clever wrapping', () => {
@@ -126,6 +126,31 @@ describe('#evaluate', () => {
 
   test('returns value', () => {
     expect(evaluate('return 2 + 2')).toBe(4);
+  });
+});
+
+describe('#evaluateAsync', () => {
+  test('evaluates expression', () => {
+    expect(evaluateAsync('2 + 2')).toBeDefined();
+  });
+
+  test('evaluates expression asynchronously', async () => {
+    expect(await evaluateAsync('2 + 2')).toBe(undefined);
+  });
+
+  test('sloppy by default', () => {
+    expect(() => evaluateAsync('with({}){}')).not.toThrow();
+  });
+
+  test('accepts arguments mode is supported', async () => {
+    expect(await evaluateAsync('return a + b', { a: 1, b: 5 }, true)).toBe(6);
+  });
+
+  test('async execution', async () => {
+    expect(await evaluateAsync(`
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return a + b
+    `, { a: 1, b: 5 }, true)).toBe(6);
   });
 });
 

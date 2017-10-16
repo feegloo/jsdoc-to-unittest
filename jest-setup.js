@@ -1,4 +1,7 @@
 import expect from 'expect';
+import mock from 'src/mock';
+
+global.mock = mock;
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 

@@ -8,6 +8,14 @@ export function evaluate(code, args = {}, strict = false) {
   return Function(Object.keys(args).join(','), `${strict ? '\'use strict\';' : ''}${code}`)(...Object.values(args));
 }
 
+export const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+
+export async function evaluateAsync(code, args = {}, strict = false) {
+  return AsyncFunction(Object.keys(args).join(','), `${strict ? '\'use strict\';' : ''}${code}`)(...Object.values(args));
+}
+
+export const isAsyncFunction = func => !isPrimitive(func) && func instanceof AsyncFunction;
+
 export function validateSyntax(code) {
   try {
     evaluate(code, {}, true);
@@ -36,25 +44,18 @@ const reg = /[\n;]/;
 
 export const stripComments = str => str.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
 
-export function wrap(src, withMock) { // todo: handle primitive returns
+export function wrap(src, mocks) { // todo: handle primitive returns
   if (typeof src !== 'string') {
     return '';
   }
 
   if (isFunction(src, this)) {
-    return withMock ? `mock(${src})` : src;
+    return mocks ? `mock(${src}, ${mocks})` : src;
   }
 
   if (validateSyntax(src).ex !== null) {
     return '';
   }
-
-  // try {
-  //   const paths = parseKey(src);
-  //   if (paths.length === 1) {
-  //     //  return withMock ? `mock(() => ${buildPath(paths[0])})` : buildPath(paths[0]);
-  //   }
-  // } catch (ex) {}
 
   if (reg.test(src)) {
     const lines = src.split(reg)
@@ -66,16 +67,16 @@ export function wrap(src, withMock) { // todo: handle primitive returns
         return (${toResult(lines[lines.length - 1])});
       }`;
       if (!validateSyntax(wrappedFunc).ex) {
-        return withMock ? `mock(${wrappedFunc})` : wrappedFunc;
+        return mocks ? `mock(${wrappedFunc}, ${mocks})` : wrappedFunc;
       }
     }
 
     const joined = lines.join('').replace(/;*$|\/{2,}.*$/g, '').trim();
-    return withMock ? `mock(() => ${joined})` : joined;
+    return mocks ? `mock(() => ${joined}, ${mocks})` : joined;
   }
 
   const formattedSrc = src.replace(/;*$|\/{2,}.*$/g, '').trim();
-  return withMock ? `mock(() => ${formattedSrc})` : formattedSrc;
+  return mocks ? `mock(() => ${formattedSrc}, ${mocks})` : formattedSrc;
 }
 
 export const isPrimitive = sth => sth === null || (typeof sth !== 'object' && typeof sth !== 'function');
@@ -85,7 +86,7 @@ export const assertAccess = target => new Proxy(() => {}, {
   get(_, key) {
     if (key === Symbol.unscopables) return [];
 
-    if (Reflect.has(target, key)) {
+    if (!isPrimitive(target) && Reflect.has(target, key)) {
       const value = target[key];
       if (isPrimitive(value)) {
         return value;
@@ -95,7 +96,8 @@ export const assertAccess = target => new Proxy(() => {}, {
         return function () {
           try {
             // eslint-disable-next-line prefer-rest-params
-            return value.apply(this, arguments); // todo: propagate assertAccess further?
+            console.log('x', ...arguments)
+            return assertAccess(value.apply(this, arguments));
           } catch (ex) {}
         };
       }

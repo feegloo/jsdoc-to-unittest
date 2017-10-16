@@ -18,7 +18,8 @@
     "no-empty": "off",
     "no-restricted-syntax": "off",
     "consistent-return": "warn",
-    "class-methods-use-this": "off"
+    "class-methods-use-this": "off",
+    "no-use-before-define": "warn"
   },
   "settings": {
     "import/resolver": [
