@@ -1,4 +1,15 @@
-import { toResult, isFunction, wrap, assertAccess, stripComments, evaluate, evaluateAsync, isPrimitive } from 'src/utils';
+import {
+  toResult,
+  isFunction,
+  wrap,
+  assertAccess,
+  stripComments,
+  evaluate,
+  evaluateAsync,
+  isPrimitive,
+  getFunctionBody,
+  getFunctionParams,
+} from 'src/utils';
 
 function call() { // eslint-disable-line no-unused-vars
   return '2';
@@ -215,4 +226,36 @@ describe('#toResult', () => {
   expect(toResult('[].forEach')).toBe('[].forEach');
   expect(toResult(';;[].forEach')).toBe('[].forEach');
   expect(toResult(';;[].forEach;;')).toBe('[].forEach');
+});
+
+describe('#getFunctionBody', () => {
+  test('normal functions', () => {
+    function contains() {
+      return forEach();
+    }
+
+    expect(getFunctionBody(contains)).toBe('{\n    return forEach();\n}');
+  });
+
+  // test('generators')
+  // test('arrow')
+  // test('iife')
+});
+
+describe('#getFunctionParams', () => {
+  test('returns array of arguments\' names', () => {
+    function contains(str) {
+      return forEach(str);
+    }
+
+    expect(getFunctionParams(contains)).toEqual(['str']);
+  });
+
+  test('returns empty array', () => {
+    function contains() {
+      return forEach();
+    }
+
+    expect(getFunctionParams(contains)).toEqual([]);
+  });
 });

@@ -1,5 +1,6 @@
 import escodegen from 'escodegen';
 import * as acorn from 'acorn';
+import * as walk from 'acorn/dist/walk';
 
 export function toResult(str) {
   return str.replace(/^[;]*|[;]*$/g, '');
@@ -89,7 +90,7 @@ export const isPrimitive = sth => sth === null || (typeof sth !== 'object' && ty
 export const assertAccess = target => new Proxy(() => {}, {
   has: () => true,
   get(_, key) {
-    if (key === Symbol.unscopables) return [];
+    if (key === Symbol.unscopables) return null;
 
     if (!isPrimitive(target) && Reflect.has(target, key)) {
       const value = target[key];
@@ -112,3 +113,44 @@ export const assertAccess = target => new Proxy(() => {}, {
     return assertAccess({});
   },
 });
+
+const astCache = new class extends WeakMap {
+  get(target) {
+    if (isPrimitive(target)) {
+      return acorn.parse(target);
+    }
+
+    let ast = super.get(target);
+    if (ast !== undefined) {
+      return ast;
+    }
+
+    ast = acorn.parse(target);
+    this.set(target, ast);
+    return ast;
+  }
+};
+
+export { astCache };
+
+export function getFunctionBody(func) {
+  const nodes = [];
+  walk.simple(astCache.get(func), {
+    FunctionDeclaration(node) {
+      nodes.push(node);
+    },
+  });
+
+  return escodegen.generate(nodes[0].body);
+}
+
+export function getFunctionParams(func) {
+  const nodes = [];
+  walk.simple(astCache.get(func), {
+    FunctionDeclaration(node) {
+      nodes.push(node);
+    },
+  });
+
+  return nodes.length && nodes[0].params !== undefined ? nodes[0].params.map(item => item.name) : [];
+}

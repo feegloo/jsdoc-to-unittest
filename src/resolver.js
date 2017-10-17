@@ -1,8 +1,9 @@
 import { parseKey } from './analyzer';
+import { evaluate } from './utils';
 
 function buildPath([path, ...rest], calls) {
   rest.forEach((part) => {
-    if (isNaN(part)) {
+    if (isNaN(+part)) {
       path += `.${part}`;
     } else {
       path += `[${part}]`;
@@ -16,21 +17,19 @@ function buildPath([path, ...rest], calls) {
 }
 
 export function listMissingDependencies(code, scope = {}) {
-  return parseKey(code).map(({ access, path, calls }) => {
+  return parseKey(code).map(({ path, calls }) => {
     const currentPath = [];
     try {
       (function resolve(part) {
         currentPath.push(part);
-        const ref = Function('s', `with(s){return(${buildPath(currentPath, false)});}`)(scope);
+        const ref = evaluate(`return(${buildPath(currentPath, calls && !path.length)})`, scope);
         if (path.length) {
           resolve(path.shift());
         } else if (calls && typeof ref === 'function') {
-          let stripped = ref.toString().replace(ref.name, '(') + ')()';
-          console.log(listMissingDependencies(stripped), scope);
+          return listMissingDependencies(`${ref.name}()`, { [ref.name]: ref });
         }
       })(path.shift());
     } catch (ex) {
-      console.log(ex)
       return {
         kind: ex.constructor.name,
         path: currentPath,

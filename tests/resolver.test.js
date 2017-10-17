@@ -19,11 +19,30 @@ describe('#listMissingDependencies', () => {
     }]);
   });
 
+  test('path is joined as expected', () => {
+    class RandomError extends Error {}
+    expect(listMissingDependencies('x[0].forEach()', {
+      x: [{
+        forEach() {
+          throw new RandomError('Bo!');
+        },
+      }],
+    })).toEqual([
+      { kind: 'RandomError', path: ['x', '0', 'forEach'] },
+    ]);
+  });
+
   test('nested', () => {
     // eslint-disable-next-line no-undef
-    expect(listMissingDependencies('easy.each()', { easy: { each() { easy.foo(); } } })).toEqual([{
-      kind: 'ReferenceError',
-      path: ['easy', 'foo'],
+    expect(listMissingDependencies('easy.each()', { easy: { each() { lol.foo(); } } })).toEqual([{
+      kind: 'ReferenceError', // lol is undefined
+      path: ['easy', 'each'],
+    }]);
+
+    const bar = {};
+    expect(listMissingDependencies('easy.each()', { easy: { each() { bar.foo(); } } })).toEqual([{
+      kind: 'TypeError',
+      path: ['easy', 'each'],
     }]);
   });
 });

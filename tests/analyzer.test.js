@@ -5,9 +5,24 @@ import {
   getPath,
   isCallable,
   listAccesses,
+  listAccessesAsync,
 } from 'src/analyzer';
 
 describe('#parseKey', () => {
+  test('direct', () => {
+    expect(parseKey('foo')).toEqual([{
+      calls: 0,
+      access: ['access'],
+      path: ['foo'],
+    }]);
+
+    expect(parseKey('foo()')).toEqual([{
+      calls: 1,
+      access: ['access', 'call', []],
+      path: ['foo'],
+    }]);
+  });
+
   test('getters', () => {
     expect(parseKey('foo.bar.baz')).toEqual([{
       calls: 0,
@@ -64,7 +79,7 @@ describe('#parseKey', () => {
         path: ['foo', '0', 'bar', 'baz'],
         access: ['access', 'get', 'get', 'call', [
           { value: 10, type: 'number' },
-          { value: 12, type: 'number' }
+          { value: 12, type: 'number' },
         ], 'get', 'call', [
           { value: 1, type: 'number' },
           { value: 2, type: 'number' },
@@ -79,6 +94,44 @@ describe('#parseKey', () => {
         ]],
       },
     ]);
+  });
+
+  test('nested functions', () => {
+    function contains() {
+      return forEach();
+    }
+
+    expect(parseKey('contains()', func => eval(func), true)).toEqual([
+      { access: ['access', 'call', []], calls: 1, path: ['contains'] },
+      { access: ['access', 'call', []], calls: 1, path: ['forEach'] },
+    ]);
+  });
+
+  test('return statement', () => {
+    expect(parseKey('return foo.bar.baz(1, 2)')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'get', 'call', [
+        { value: 1, type: 'number' },
+        { value: 2, type: 'number' },
+      ]],
+      path: ['foo', 'bar', 'baz'],
+    }]);
+
+    expect(parseKey(`{
+        return xD();
+    }`)).toEqual([{
+      calls: 1,
+      access: ['access', 'call', []],
+      path: ['xD'],
+    }]);
+  });
+
+  test('Symbol.unscopables', () => {
+    expect(parseKey('forEach()')).toEqual([{
+      calls: 1,
+      access: ['access', 'call', []],
+      path: ['forEach'],
+    }]);
   });
 
   test('calls with non-primitives', () => {
@@ -101,7 +154,7 @@ describe('#parseKey', () => {
       ]],
       path: ['easy', 'utils', 'isDate'],
     }]);
-  })
+  });
 
   test('toPrimitive', () => {
     expect(parseKey('foo.bar() + xyz()')).toEqual([
@@ -229,6 +282,22 @@ describe('#listAccesses', () => {
   });
 });
 
+describe('#listAccessAsync', () => {
+  test('lists accesses', async () => {
+    expect(await listAccessesAsync(`(() =>
+    getFromURL('https://mail.google.com/mail/').then(response => response.slice(5).trim()))()`,
+    ))
+      .toEqual([
+        ['access', 'call', [{ type: 'string', value: 'https://mail.google.com/mail/' }]]
+      ]);
+  });
+
+  test('never throws', async () => {
+    expect(await listAccessesAsync('baz.foo.bar()', ['frosmo.xyz.aaa()'])).toEqual([]);
+    expect(await listAccessesAsync('baz.fo;;---o.bar()', ['frosmo.xyz.aaa()'])).toEqual([]);
+  });
+});
+
 describe('#getPath', () => {
   test('get paths correctly', () => {
     expect(getPath('frosmo.test.xyz.call()')).toEqual([['frosmo', 'test', 'xyz', 'call']]);
@@ -264,7 +333,7 @@ describe('#getPath', () => {
       return foo.bar.baz();
     }
 
-    expect(getPath.call(func => eval(func), 'contains()')).toEqual([
+    expect(getPath.call(func => eval(func), 'contains()', true)).toEqual([
       ['contains'],
       ['foo', 'bar', 'baz'],
     ]);
@@ -279,7 +348,7 @@ describe('#getPath', () => {
       return forEach([1, 2]);
     }
 
-    expect(getPath.call(func => eval(func), 'contains()')).toEqual([
+    expect(getPath.call(func => eval(func), 'contains()', true)).toEqual([
       ['contains'],
       ['forEach'],
       ['foo', 'bar', 'baz'],
@@ -299,7 +368,7 @@ describe('#getPath', () => {
       return forEach(context());
     }
 
-    expect(getPath.call(func => eval(func), 'contains()')).toEqual([
+    expect(getPath.call(func => eval(func), 'contains()', true)).toEqual([
       ['contains'],
       ['context'],
       ['foo', 'bar', 'baz'],

@@ -1,11 +1,11 @@
-import { evaluate, evaluateAsync } from './utils';
+import { evaluate, evaluateAsync, getFunctionBody, getFunctionParams } from './utils';
 import feedback from './feedback';
 
 function collectFeedback(argumentsList) {
   return argumentsList.map(feedback);
 }
 
-function intercept(ret, _eval, keys = {}) {
+function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
   const obj = {
     path: [],
     access: [],
@@ -13,6 +13,7 @@ function intercept(ret, _eval, keys = {}) {
   };
   let current = null;
   let included = false;
+  let excluded = false;
   const instance = new Proxy(function () {}, {
     apply(target, thisArg, argumentsList) {
       if (argumentsList.some(item => item === instance)) {
@@ -30,9 +31,13 @@ function intercept(ret, _eval, keys = {}) {
       } catch (ex) {}
 
       try {
-        const ref = _eval(current.path.join('.'));
+        const ref = _eval(current.path.join('.')); // fixme: use path builder
         if (typeof ref === 'function') {
-          ret.push(...parseKey(`(${ref})()`, _eval));
+          const args = {};
+          getFunctionParams(ref).forEach((name, i) => {
+            args[name] = argumentsList[i];
+          });
+          ret.push(...parseKey(getFunctionBody(ref), _eval, { args }));
         }
       } catch (ex) {}
       return instance;
@@ -44,16 +49,21 @@ function intercept(ret, _eval, keys = {}) {
       }
       return instance;
     },
-    has() {
-      current = JSON.parse(JSON.stringify(obj));
-      ret.push(current);
-      included = false;
+    has(target, key) {
+      if (!Reflect.has(args, key)) {
+        current = JSON.parse(JSON.stringify(obj));
+        ret.push(current);
+        included = false;
+        excluded = false;
+      } else {
+        excluded = true;
+      }
       return true;
     },
     get(target, key) {
       switch (key) {
         case Symbol.unscopables:
-          return [];
+          return undefined;
         case Symbol.toPrimitive:
           return function (hint) {
             target.apply(this, arguments); // eslint-disable-line prefer-rest-params
@@ -69,17 +79,23 @@ function intercept(ret, _eval, keys = {}) {
         case 'toJSON':
           return () => null;
         default:
-          if (Object.keys(keys).includes(key)) {
-            current.special = keys[key];
-          }
+          if (!excluded) {
+            if (Object.keys(keys).includes(key)) {
+              current.special = keys[key];
+            }
 
-          current.path.push(key);
-          if (!included) {
-            included = true;
-            current.access.push('access');
-          } else {
-            current.access.push('get');
+            current.path.push(key);
+            if (!included) {
+              included = true;
+              current.access.push('access');
+            } else {
+              current.access.push('get');
+            }
           }
+      }
+
+      if (args[key]) {
+        return args[key];
       }
 
       return instance;
@@ -89,10 +105,10 @@ function intercept(ret, _eval, keys = {}) {
   return instance;
 }
 
-export function parseKey(exp, _eval = () => {}) {
+export function parseKey(exp, _eval = () => {}, { keys = {}, args = {} } = {}) {
   const ret = [];
   evaluate(`with(s){\n${exp}\n}`, {
-    s: intercept(ret, _eval),
+    s: intercept(ret, _eval, { keys, args }),
   });
   return ret;
 }
@@ -101,8 +117,11 @@ export async function parseKeyAsync(exp, _eval) {
   const ret = [];
   await evaluateAsync(`with(s){\n${exp}\n}`, {
     s: intercept(ret, _eval, {
-      then: 'Promise',
-      catch: 'Promise',
+      follow: true,
+      keys: {
+        then: 'Promise',
+        catch: 'Promise',
+      },
     }),
   });
   return ret.map((item) => {
@@ -142,8 +161,8 @@ export async function parseKeyAsync(exp, _eval) {
   });
 }
 
-export function getPath(func) {
-  return parseKey(func, this).reduce((acc, { path }) => [...acc, path], []);
+export function getPath(func, follow) {
+  return parseKey(func, this, { follow }).reduce((acc, { path }) => [...acc, path], []);
 }
 
 export function isCallable(func, toObserve, all = false) {
@@ -171,7 +190,7 @@ export function fallToGlobal(target, _eval, oldKey = '') {
       return true;
     },
     get(_, key) {
-      if (key === Symbol.unscopables) return [];
+      if (key === Symbol.unscopables) return null;
       if (key === 'arguments') {
         return mappedArgs.get(target) || [];
       }
