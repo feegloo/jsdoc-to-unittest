@@ -33,31 +33,50 @@ function exec(src) {
 }
 
 describe('#wrap', () => {
-  test('works', () => {
+  test('works for single-line functions/function calls', () => {
     expect(exec('call()')).toBe('2');
     expect(exec('call();')).toBe('2');
     expect(exec('2 + +call();')).toBe(4);
-    expect(exec('call();call2();')()).toBe(10);
-    expect(exec('call();\n\ncall2();')()).toBe(10);
-    expect(exec('\n\n;call();call();\n\ncall2();')()).toBe(10);
+    expect(exec('call();call2();')).toBe(10);
+    expect(exec('call();\n\ncall2();')).toBe(10);
+    expect(exec('\n\n;call();call();\n\ncall2();')).toBe(10);
+  });
+
+  test('works for multiline-line code/functions', () => {
     expect(exec(func)()).toBe(14);
-    expect(exec(func2)()).toBe('210');
+    expect(exec(func2)).toBe('210');
     expect(exec(func3)).toBe('2');
   });
 
+  test('doesn\'t touch strings', () => {
+    expect(exec('\'x//test\'')).toBe('x//test');
+    expect(exec('(() => {\nreturn \'x//test\' })()')).toBe('x//test');
+  });
+
   test('mock functions', () => {
-    expect(wrap.bind({ call }, 'call', JSON.stringify({}))()).toBe('mock(call, {})');
-    expect(wrap('call()', JSON.stringify({}))).toBe('mock(() => call(), {})');
-    expect(wrap('call()\ncall2()', JSON.stringify({}))).toBe('mock(() => {\n' +
-      '        call();\n' +
-      '        return (call2());\n' +
-      '      }, {})');
+    expect(wrap.bind({ call }, 'call', JSON.stringify({}))()).toBe('mock(call, {}, func => eval(func))');
+    expect(wrap('call()', JSON.stringify({}))).toBe('mock(() => call(), {}, func => eval(func))');
+    expect(wrap('call()\ncall2()', JSON.stringify({})))
+      .toBe('mock(() => eval(`call()\ncall2()`), {}, func => eval(func))');
   });
 
   test('clever wrapping', () => {
-    expect(wrap(`easy.utils.each([1, 2, 3], function (value, index) {
+    const found = [];
+    const easy = {
+      utils: {
+        each(arr) {
+          arr.forEach((item) => {
+            found.push(item);
+          });
+        },
+      },
+    };
+
+    Function('easy', wrap(`easy.utils.each([1, 2, 3], function (value, index) {
       easy.console.log(index, value);
-    });`)).toBe('easy.utils.each([1, 2, 3], function (value, index) {      easy.console.log(index, value)    })');
+    });`))(easy);
+
+    expect(found).toEqual([1, 2, 3]);
   });
 
   test('never throws', () => {
@@ -70,21 +89,31 @@ describe('#wrap', () => {
 });
 
 describe('#stripComments', () => {
-  expect(stripComments('test //yes')).toBe('test ');
-  expect(stripComments('test / /yes')).toBe('test / /yes');
-  expect(stripComments('test /////yes')).toBe('test ');
-  expect(stripComments('test//yes')).toBe('test');
-  expect(stripComments('test/* ddd */test')).toBe('testtest');
-  expect(stripComments('test/*ddd*/test')).toBe('testtest');
-  expect(stripComments('test/**/test')).toBe('testtest');
-  expect(stripComments(`/**
+  test('line comments', () => {
+    expect(stripComments('test //yes')).toBe('test;');
+    expect(stripComments('test / /yes')).toBe('test / /yes');
+    expect(stripComments('test /////yes')).toBe('test;');
+    expect(stripComments('test//yes')).toBe('test;');
+  });
+
+  test('block comments', () => {
+    expect(stripComments('test /* ddd */\ntest')).toBe('test;\ntest;');
+    expect(stripComments('test /*ddd*/;test')).toBe('test;\ntest;');
+    expect(stripComments('test /**/;test')).toBe('test;\ntest;');
+    expect(stripComments(`/**
    * Shared context (XDM RPC) object reference
    * @memberof easy.constants
    * @constant
    * @default
    */
    easy.bla.bla
-   `).replace(/\n/g, '').trim()).toBe('easy.bla.bla');
+   `)).toBe('easy.bla.bla;');
+  });
+
+  test('doesn\'t touch strings', () => {
+    expect(stripComments('"x//x"')).toBe('\'x//x\';');
+    expect(stripComments('\'x//x\'')).toBe('\'x//x\';');
+  })
 });
 
 describe('#assertAccess', () => {

@@ -14,6 +14,7 @@ export default async (input, output) => {
   const content = await readFileAsync(getInputFile(input));
   const { imports, exports, samples } = parse(content);
 
+  // todo: grab eslint and pass to prettifier
   return print({
     filename: getOutputFile(output),
     get stdout() {

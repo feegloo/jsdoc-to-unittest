@@ -1,4 +1,4 @@
-import mock, { mockAsync } from 'src/mock';
+import mock from 'src/mock';
 import {
   parseKey,
   fallToGlobal,
@@ -76,19 +76,19 @@ describe('#mock', () => {
   });
 
   test('mocks async functions', async () => {
-    expect(await mockAsync(async () => obj.easy().then(value => value * 2), {
+    expect(await mock.async(async () => obj.easy().then(value => value * 2), {
       'obj.easy()': () => Promise.resolve(20),
     }, eval)).toBe(40);
 
-    expect(await mockAsync(() => obj.easy(), {
+    expect(await mock.async(() => obj.easy(), {
       'obj.easy()': () => Promise.resolve(20),
     }, eval)).toBe(20);
 
-    expect(await mockAsync(() => obj.easy().catch(ex => ex), {
+    expect(await mock.async(() => obj.easy().catch(ex => ex), {
       'obj.easy()': () => Promise.reject(new Error('xx')),
     }, eval)).toBeInstanceOf(Error);
 
-    expect(await mockAsync(async () => {
+    expect(await mock.async(async () => {
       const value = await obj.easy();
       return `${value}DDDD`;
     }, {

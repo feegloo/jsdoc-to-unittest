@@ -1,4 +1,5 @@
-// import { parseKey } from './analyzer';
+import escodegen from 'escodegen';
+import * as acorn from 'acorn';
 
 export function toResult(str) {
   return str.replace(/^[;]*|[;]*$/g, '');
@@ -40,43 +41,47 @@ export function isFunction(str, scope = {}) {
   return false;
 }
 
-const reg = /[\n;]/;
+const semicolons = /^[\s;]+|[\s*;]+$/g;
 
-export const stripComments = str => str.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+export const stripSemicolons = str => str.replace(semicolons, '');
 
-export function wrap(src, mocks) { // todo: handle primitive returns
+export const stripComments = (str) => {
+  try {
+    return escodegen.generate(acorn.parse(str), {
+      format: {
+        indent: {
+          style: '  ',
+          base: 0,
+          adjustMultilineComment: false,
+        },
+      },
+    });
+  } catch (ex) {
+    return str;
+  }
+};
+
+export function wrap(src, mocks, mockName = 'mock') {
   if (typeof src !== 'string') {
     return '';
-  }
-
-  if (isFunction(src, this)) {
-    return mocks ? `mock(${src}, ${mocks})` : src;
   }
 
   if (validateSyntax(src).ex !== null) {
     return '';
   }
 
-  if (reg.test(src)) {
-    const lines = src.split(reg)
-      .map(stripComments)
-      .filter(item => item.trim().length);
-    if (lines.length > 1) {
-      const wrappedFunc = `() => {
-        ${lines.slice(0, lines.length - 1).join(';\n')};
-        return (${toResult(lines[lines.length - 1])});
-      }`;
-      if (!validateSyntax(wrappedFunc).ex) {
-        return mocks ? `mock(${wrappedFunc}, ${mocks})` : wrappedFunc;
-      }
-    }
+  const stripped = stripComments(src);
+  const strippedSemicolons = stripSemicolons(stripped);
 
-    const joined = lines.join('').replace(/;*$|\/{2,}.*$/g, '').trim();
-    return mocks ? `mock(() => ${joined}, ${mocks})` : joined;
+  if (isFunction(strippedSemicolons, this)) {
+    return mocks ? `${mockName}(${strippedSemicolons}, ${mocks}, func => eval(func))` : strippedSemicolons;
   }
 
-  const formattedSrc = src.replace(/;*$|\/{2,}.*$/g, '').trim();
-  return mocks ? `mock(() => ${formattedSrc}, ${mocks})` : formattedSrc;
+  if (!/[\n;]/.test(strippedSemicolons)) {
+    return mocks ? `${mockName}(() => ${strippedSemicolons}, ${mocks}, func => eval(func))` : strippedSemicolons;
+  }
+
+  return mocks ? `${mockName}(() => eval(\`${src}\`), ${mocks}, func => eval(func))` : `eval(\`${src}\`)`;
 }
 
 export const isPrimitive = sth => sth === null || (typeof sth !== 'object' && typeof sth !== 'function');
@@ -96,7 +101,6 @@ export const assertAccess = target => new Proxy(() => {}, {
         return function () {
           try {
             // eslint-disable-next-line prefer-rest-params
-            console.log('x', ...arguments)
             return assertAccess(value.apply(this, arguments));
           } catch (ex) {}
         };

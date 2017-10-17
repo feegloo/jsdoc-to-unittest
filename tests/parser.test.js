@@ -90,4 +90,10 @@ describe('Parser', () => {
       }],
     );
   });
+
+  test('supports async', async () => {
+    expect(parse(
+      await readFileAsync(path.resolve(__dirname, 'fixtures/async.js'), 'utf-8'),
+    )).toMatchSnapshot();
+  });
 });

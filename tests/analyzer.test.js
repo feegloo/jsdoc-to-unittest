@@ -13,14 +13,12 @@ describe('#parseKey', () => {
       calls: 0,
       access: ['access', 'get', 'get'],
       path: ['foo', 'bar', 'baz'],
-      feedback: [],
     }]);
 
     expect(parseKey('foo[\'bar\'].baz')).toEqual([{
       calls: 0,
       access: ['access', 'get', 'get'],
       path: ['foo', 'bar', 'baz'],
-      feedback: [],
     }]);
   });
 
@@ -28,18 +26,13 @@ describe('#parseKey', () => {
     expect(parseKey('foo.bar.baz(1, 2);foo.baz.baz.boo')).toEqual([
       {
         calls: 1,
-        access: ['access', 'get', 'get', 'call', 2],
+        access: ['access', 'get', 'get', 'call', [{ type: 'number', value: 1 }, { type: 'number', value: 2 }]],
         path: ['foo', 'bar', 'baz'],
-        feedback: [
-          { value: 1, type: 'number' },
-          { value: 2, type: 'number' },
-        ],
       },
       {
         calls: 0,
         access: ['access', 'get', 'get', 'get'],
         path: ['foo', 'baz', 'baz', 'boo'],
-        feedback: [],
       },
     ]);
   });
@@ -47,12 +40,11 @@ describe('#parseKey', () => {
   test('calls with primitives', () => {
     expect(parseKey('foo.bar.baz(1, 2)')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', 2],
-      path: ['foo', 'bar', 'baz'],
-      feedback: [
+      access: ['access', 'get', 'get', 'call', [
         { value: 1, type: 'number' },
         { value: 2, type: 'number' },
-      ],
+      ]],
+      path: ['foo', 'bar', 'baz'],
     }]);
   });
 
@@ -60,33 +52,31 @@ describe('#parseKey', () => {
     expect(parseKey('foo[0].bar().baz(1, 2)')).toEqual([{
       path: ['foo', '0', 'bar', 'baz'],
       calls: 2,
-      access: ['access', 'get', 'get', 'call', 0, 'get', 'call', 2],
-      feedback: [
+      access: ['access', 'get', 'get', 'call', [], 'get', 'call', [
         { value: 1, type: 'number' },
         { value: 2, type: 'number' },
-      ],
+      ]],
     }]);
 
     expect(parseKey('foo[0].bar(10, 12).baz(1, 2);baz.bar(10, 12);')).toEqual([
       {
         calls: 2,
         path: ['foo', '0', 'bar', 'baz'],
-        access: ['access', 'get', 'get', 'call', 2, 'get', 'call', 2],
-        feedback: [
+        access: ['access', 'get', 'get', 'call', [
           { value: 10, type: 'number' },
-          { value: 12, type: 'number' },
+          { value: 12, type: 'number' }
+        ], 'get', 'call', [
           { value: 1, type: 'number' },
           { value: 2, type: 'number' },
-        ],
+        ]],
       },
       {
         calls: 1,
         path: ['baz', 'bar'],
-        access: ['access', 'get', 'call', 2],
-        feedback: [
+        access: ['access', 'get', 'call', [
           { value: 10, type: 'number' },
           { value: 12, type: 'number' },
-        ],
+        ]],
       },
     ]);
   });
@@ -94,59 +84,48 @@ describe('#parseKey', () => {
   test('calls with non-primitives', () => {
     expect(parseKey('easy.utils.isDate(new Date()); // true')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', 1],
+      access: ['access', 'get', 'get', 'call', [{ type: 'object', value: null }]],
       path: ['easy', 'utils', 'isDate'],
-      feedback: [
-        { type: 'object', value: null },
-      ],
     }]);
 
     expect(parseKey('easy.utils.isDate(easy); // true')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', 1],
+      access: ['access', 'get', 'get', 'call', [{ type: 'object', value: null }]],
       path: ['easy', 'utils', 'isDate'],
-      feedback: [
-        { type: 'object', value: null },
-      ],
     }]);
 
     expect(parseKey('easy.utils.isDate(new Date(new Date())); // true')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', 1],
-      path: ['easy', 'utils', 'isDate'],
-      feedback: [
+      access: ['access', 'get', 'get', 'call', [
         { type: 'object', value: null },
-      ],
+      ]],
+      path: ['easy', 'utils', 'isDate'],
     }]);
   })
 
   test('toPrimitive', () => {
     expect(parseKey('foo.bar() + xyz()')).toEqual([
       {
-        access: ['access', 'get', 'call', 0],
+        access: ['access', 'get', 'call', []],
         calls: 1,
         path: ['foo', 'bar'],
-        feedback: [],
       },
       {
-        access: ['access', 'call', 0],
+        access: ['access', 'call', []],
         calls: 1,
         path: ['xyz'],
-        feedback: [],
       }]);
 
     expect(parseKey('foo.bar() + +xyz()')).toEqual([
       {
-        access: ['access', 'get', 'call', 0],
+        access: ['access', 'get', 'call', []],
         calls: 1,
         path: ['foo', 'bar'],
-        feedback: [],
       },
       {
-        access: ['access', 'call', 0],
+        access: ['access', 'call', []],
         calls: 1,
         path: ['xyz'],
-        feedback: [],
       }]);
 
     expect(() => parseKey('foo.bar[Symbol.hasPrimitive]()')).not.toThrow();
@@ -161,18 +140,16 @@ describe('#parseKeyAsync', () => {
   test('analyzes promises as expected', async () => {
     expect(await parseKeyAsync('obj.foo().then')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'call', 0],
+      access: ['access', 'get', 'call', []],
       path: ['obj', 'foo'],
       special: 'Promise',
-      feedback: [],
     }]);
 
     expect(await parseKeyAsync('obj.foo().then(console.log).catch(console.log)')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'call', 0],
+      access: ['access', 'get', 'call', []],
       path: ['obj', 'foo'],
       special: 'Promise',
-      feedback: [],
     }]);
   });
 });
@@ -182,36 +159,67 @@ describe('#listAccesses', () => {
     expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get']]);
     expect(listAccesses('frosmo.xyz["aaa"]', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get']]);
     expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz["aaa"]'])).toEqual([['access', 'get', 'get']]);
-    expect(listAccesses('frosmo.xyz.aaa()', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get', 'call', 0]]);
+    expect(listAccesses('frosmo.xyz.aaa()', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get', 'call', []]]);
     expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa']))
-      .toEqual([['access', 'get', 'get', 'call', 3]]);
+      .toEqual([['access', 'get', 'get', 'call', [
+        { type: 'boolean', value: true },
+        { type: 'boolean', value: false },
+        { type: 'number', value: 2 },
+      ]]]);
     expect(listAccesses('frosmo.xyz.aaa();frosmo.xyz.aaa', ['frosmo.xyz.aaa'])).toEqual([
-      ['access', 'get', 'get', 'call', 0],
+      ['access', 'get', 'get', 'call', []],
       ['access', 'get', 'get'],
     ]);
   });
 
   test('detects correct number of arguments', () => {
     expect(listAccesses('frosmo.xyz().aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
-      ['access', 'get', 'call', 0, 'get', 'call', 3],
+      ['access', 'get', 'call', [], 'get', 'call', [
+        { type: 'boolean', value: true },
+        { type: 'boolean', value: false },
+        { type: 'number', value: 2 },
+      ]],
     ]);
   });
 
   test('has optional filter', () => {
     expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', [])).toEqual([
-      ['access', 'get', 'call', 0],
-      ['access', 'get', 'get', 'call', 3],
+      ['access', 'get', 'call', []],
+      ['access', 'get', 'get', 'call', [
+        { type: 'boolean', value: true },
+        { type: 'boolean', value: false },
+        { type: 'number', value: 2 },
+      ]],
     ]);
 
     expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)')).toEqual([
-      ['access', 'get', 'call', 0],
-      ['access', 'get', 'get', 'call', 3],
+      ['access', 'get', 'call', []],
+      ['access', 'get', 'get', 'call', [
+        { type: 'boolean', value: true },
+        { type: 'boolean', value: false },
+        { type: 'number', value: 2 },
+      ]],
     ]);
   });
 
   test('shadows objects', () => {
     expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
-      ['access', 'get', 'get', 'call', 3],
+      ['access', 'get', 'get', 'call', [
+        { type: 'boolean', value: true },
+        { type: 'boolean', value: false },
+        { type: 'number', value: 2 },
+      ]],
+    ]);
+  });
+
+  test('nested calls', () => {
+    function contains(str) {
+      return foo.bar.baz(str);
+    }
+
+    expect(listAccesses.call(func => eval(func), 'contains(2)')).toEqual([
+      ['access', 'call', [{ type: 'number', value: 2 }]],
+      ['access', 'get', 'get', 'call', [{ type: 'number', value: 2 }]],
     ]);
   });
 

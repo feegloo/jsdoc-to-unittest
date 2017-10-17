@@ -61,3 +61,97 @@ easy.utils.each([1, 2, 3], function (value, index) {
   },
 ]
 `;
+
+exports[`Parser supports async 1`] = `
+Object {
+  "exports": Array [
+    "function getFromURL(str) {
+    return fetch(str);
+}",
+  ],
+  "imports": Array [
+    "getFromURL",
+  ],
+  "samples": Array [
+    Sample {
+      "examples": Array [
+        Object {
+          "async": true,
+          "code": "getFromURL('https://mail.google.com/mail/')
+  .then(response => response.slice(5).trim()); // \\"world\\"",
+          "mocks": Object {
+            "fetch('string')": "hello world  ",
+          },
+          "name": "getFromURL",
+          "result": "world",
+          "type": "value",
+        },
+      ],
+      "name": "getFromURL",
+      "tags": Object {
+        "async": Array [
+          Object {
+            "description": null,
+            "title": "async",
+          },
+        ],
+        "example": Array [
+          Object {
+            "description": "getFromURL('https://mail.google.com/mail/')
+  .then(response => response.slice(5).trim()); // \\"world\\"",
+            "title": "example",
+          },
+        ],
+        "mock": Array [
+          Object {
+            "description": "{ 'fetch(\\\\'string\\\\')': 'hello world  ' }",
+            "title": "mock",
+          },
+        ],
+        "name": Array [
+          Object {
+            "description": null,
+            "name": "getFromURL",
+            "title": "name",
+          },
+        ],
+        "param": Array [
+          Object {
+            "description": null,
+            "name": "str1",
+            "title": "param",
+            "type": null,
+          },
+          Object {
+            "description": null,
+            "name": "str2",
+            "title": "param",
+            "type": null,
+          },
+        ],
+        "return": Array [
+          Object {},
+        ],
+        "returns": Array [
+          Object {
+            "description": null,
+            "title": "returns",
+            "type": Object {
+              "elements": Array [
+                Object {
+                  "type": "AllLiteral",
+                },
+                Object {
+                  "name": "boolean",
+                  "type": "NameExpression",
+                },
+              ],
+              "type": "UnionType",
+            },
+          },
+        ],
+      },
+    },
+  ],
+}
+`;

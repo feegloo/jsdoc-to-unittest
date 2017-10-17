@@ -21,7 +21,9 @@ class Sample {
     tags,
   }) {
     this.tags = Sample.parseTags(tags, {
+      async: [],
       returns: [{}],
+      return: [{}],
       name: [{}],
       example: [],
       mock: [],
@@ -32,7 +34,7 @@ class Sample {
   }
 
   get returns() {
-    return this.tags.returns[0].type;
+    return (this.tags.returns[0] || this.tags.return[0]).type;
   }
 
   static parseTags(tags, /* istanbul ignore next */ defaults = {}) {
@@ -78,22 +80,29 @@ class Sample {
       ...this.parseMocks(this.tags.mock[i]),
     };
 
-    try {
-      const { lines } = getLines(code);
+    if (this.tags.async.length > 0) {
+      data.async = true;
+    }
 
-      acorn.parse(lines[lines.length - 1], {
+    try {
+      acorn.parse(code, {
         onComment: comments,
       });
 
       const lineComments = comments.filter(({ type }) => type === 'Line');
 
       if (lineComments.length) {
-        data.result = toResult(lineComments[lineComments.length - 1].value.trim());
-
-        try {
-          data.result = JSON.parse(data.result);
-          data.type = 'value';
-        } catch (ex) {}
+        const { value: result } = lineComments[lineComments.length - 1];
+        data.result = result;
+        data.type = 'value';
+        if (typeof result === 'string') {
+          try {
+            data.result = result.trim();
+            data.result = JSON.parse(toResult(result).trim());
+          } catch (ex) {
+            data.type = 'default';
+          }
+        }
       }
 
       // if (commentedOut.length > 1) {

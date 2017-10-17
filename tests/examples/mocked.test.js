@@ -11,10 +11,10 @@ global.contains = contains;
 
 describe('contains', () => {
   test('example 1', () => {
-    expect(mock(() => contains('foo', 'fooo'), { 'easy.utils.isString(1)': () => true }, eval)).toBe(false);
+    expect(mock(() => contains('foo', 'fooo'), { 'easy.utils.isString(1)': true }, eval)).toBe(false);
   });
 
   test('example 2', () => {
-    expect(mock(() => contains('hey', 'ey'), { 'easy.utils.isString(1)': () => false }, eval)).toBe(false);
+    expect(mock(() => contains('hey', 'ey'), { 'easy.utils.isString(1)': false }, eval)).toBe(false);
   });
 });

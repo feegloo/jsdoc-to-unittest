@@ -4,6 +4,7 @@ import { readFile, writeFile, toStdout } from './fs';
 
 class TestItem {
   constructor({
+    async,
     name,
     code,
     type,
@@ -11,18 +12,20 @@ class TestItem {
     imports,
     mocks,
   }) {
+    this.async = async;
     this.name = name;
     this.code = code;
     this.type = type;
     this.result = result;
     this.imports = imports;
-    this.mocks = mocks;
+    this.mocks = JSON.stringify(mocks);
+    this.mockName = async ? 'mock.async' : 'mock';
     this.valid = false;
     this.output = this.print();
   }
 
   printName(code) {
-    return `test('${this.name}', () => {
+    return `test('${this.name}', ${this.async ? 'async ' : ''}() => {
       ${code}
     })`;
   }
@@ -32,20 +35,28 @@ class TestItem {
       case 'instance':
         return `toBeOneInstanceOf(${JSON.stringify(this.result)}); // fixme: could be replaced with something more specific`;
       case 'value':
+        if (typeof this.result === 'string') {
+          return `toBe('${this.result}');`;
+        }
+
         return `toBe(${this.result});`;
-      // case 'no-throw':
-      //   return 'not.toThrow(); // fixme: could be replaced with something more specific';
+      case 'no-throw':
+        return 'not.toThrow(); // fixme: could be replaced with something more specific';
       default:
         return `toEqual(${this.result});`;
     }
   }
 
   print() {
-    const test = this.printName(`expect(${wrap(this.code, JSON.stringify(this.mocks))}).${this.renderEquality()}`);
+    if (validateSyntax(this.renderEquality()).ex !== null) {
+      this.type = 'no-throw';
+    }
+
+    const test = this.printName(`expect(${this.async ? 'await ' : ''}${wrap(this.code, this.mocks, this.mockName)}).${this.renderEquality()}`);
 
     const { ex } = validateSyntax(test);
     if (ex) {
-      return this.printError({ ex });
+      return this.printError({ ex, code: test });
     }
 
     this.valid = true;
@@ -73,8 +84,8 @@ class TestItem {
     }
   }
 
-  printError({ ex }) {
-    return this.printName(`throw new ${ex.constructor.name}('${ex.message}');\n/*${this.code}*/`);
+  printError({ ex, code }) {
+    return this.printName(`throw new ${ex.constructor.name}('${ex.message}');\n/*${code}*/`);
   }
 }
 
@@ -85,6 +96,7 @@ class Test {
     samples,
     imports,
     exports,
+    async,
     partials = [],
     namedImports = false,
   }) {
@@ -96,6 +108,7 @@ class Test {
     this.exports = exports;
     this.partials = partials;
     this.namedImports = namedImports;
+    this.async = async;
     this.stats = {
       total: 0,
       valid: 0,
@@ -128,7 +141,12 @@ class Test {
   printSample({ examples, name = (examples[0] || []).name }) {
     if (!examples.length) return '';
     const tests = examples.map((args, i) => {
-      const item = new TestItem({ imports: this.imports, ...args, name: `example ${i + 1}` });
+      const item = new TestItem({
+        async: this.async,
+        imports: this.imports,
+        ...args,
+        name: `example ${i + 1}`,
+      });
       this.stats.total += 1;
       if (item.valid) {
         this.stats.valid += 1;
@@ -136,7 +154,7 @@ class Test {
       return String(item);
     }).join('\n\n');
 
-    return `describe('${name}', () => {
+    return `describe('${name}', ${this.async ? 'async ' : ''}() => {
       ${tests}
     });`;
   }

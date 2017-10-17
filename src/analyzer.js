@@ -1,17 +1,14 @@
 import { evaluate, evaluateAsync } from './utils';
+import feedback from './feedback';
 
 function collectFeedback(argumentsList) {
-  return argumentsList.map(value => ({
-    value,
-    type: typeof value,
-  }));
+  return argumentsList.map(feedback);
 }
 
 function intercept(ret, _eval, keys = {}) {
   const obj = {
     path: [],
     access: [],
-    feedback: [],
     calls: 0,
   };
   let current = null;
@@ -24,9 +21,12 @@ function intercept(ret, _eval, keys = {}) {
       }
 
       current.calls += 1;
-      current.access.push('call', argumentsList.length);
+      const argsList = new Array(argumentsList.length).fill(feedback(undefined));
+      current.access.push('call', argsList);
       try {
-        current.feedback.push(...collectFeedback(JSON.parse(JSON.stringify(argumentsList))));
+        collectFeedback(JSON.parse(JSON.stringify(argumentsList))).forEach((item, i) => {
+          argsList[i] = item;
+        });
       } catch (ex) {}
 
       try {

@@ -16,7 +16,7 @@ describe('Creator', () => {
     })).toMatchSnapshot();
   });
 
-  test('fail', async () => {
+  test('fails gracefully', async () => {
     expect(await create({
       filename: '',
       stdout: true,
@@ -25,7 +25,7 @@ describe('Creator', () => {
     })).toMatchSnapshot();
   });
 
-  test('write to stdout', async () => {
+  test('writes to stdout', async () => {
     expect(await create({
       filename: '',
       stdout: true,
@@ -35,7 +35,7 @@ describe('Creator', () => {
     })).toMatchSnapshot();
   });
 
-  test('write to stdout #2', async () => {
+  test('writes to stdout #2', async () => {
     expect(await create({
       stdout: true,
       ...parse(
@@ -44,7 +44,7 @@ describe('Creator', () => {
     })).toMatchSnapshot();
   });
 
-  test('write to stdout #3', async () => {
+  test('writes to stdout #3', async () => {
     expect(await create({
       filename: '',
       stdout: true,
@@ -54,7 +54,7 @@ describe('Creator', () => {
     })).toMatchSnapshot();
   });
 
-  test('write to stdout #4', async () => {
+  test('writes to stdout #4', async () => {
     expect(await create({
       filename: '',
       stdout: true,
@@ -135,6 +135,13 @@ describe('Creator', () => {
   });
 
   test('async', async () => {
-
+    expect(await create({
+      filename: '',
+      stdout: true,
+      namedImports: true,
+      ...parse(
+        await readFileAsync(path.resolve(__dirname, 'fixtures/async.js'), 'utf-8'),
+      ),
+    })).toMatchSnapshot();
   });
 });

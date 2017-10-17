@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest tests/**",
+    "test": "jest",
     "lint": "eslint --cache {src,tests}/**/*.js",
     "build": "babel-node index.js",
     "config": "babel-node index.js --config",

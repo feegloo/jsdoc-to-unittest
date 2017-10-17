@@ -1,11 +1,33 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Creator async 1`] = `
+"export function getFromURL(str) {
+  return fetch(str);
+}
+
+// Valid tests: 100.00%
+
+describe('getFromURL', () => {
+  test('example 1', async () => {
+    expect(
+      await mock.async(
+        () =>
+          getFromURL('https://mail.google.com/mail/').then(response => response.slice(5).trim()),
+        { \\"fetch('string')\\": 'hello world  ' },
+        func => eval(func),
+      ),
+    ).toBe('world');
+  });
+});
+"
+`;
+
 exports[`Creator empty 1`] = `
 "// Valid tests: 0%
 "
 `;
 
-exports[`Creator fail 1`] = `
+exports[`Creator fails gracefully 1`] = `
 "\\"Cannot read property 'map' of null\\";
 "
 `;
@@ -15,12 +37,11 @@ exports[`Creator handles invalid examples 1`] = `
   return str1 && str1.indexOf(str2) !== -1;
 }
 
-// Valid tests: 0%
+// Valid tests: 100.00%
 
 describe('mayContain', () => {
   test('example 1', () => {
-    throw new SyntaxError('missing ) after argument list');
-    /* mayContain('foo', 'fooo'); // true or false */
+    expect(mayContain('foo', 'fooo')).not.toThrow(); // fixme: could be replaced with something more specific
   });
 });
 "
@@ -38,101 +59,15 @@ exports[`Creator mocked 1`] = `
 
 describe('contains', () => {
   test('example 1', () => {
-    expect(mock(() => contains('foo', 'fooo'), { 'easy.utils.isString(1)': true })).toBe(false);
-  });
-
-  test('example 2', () => {
-    expect(mock(() => contains('hey', 'ey'), { 'easy.utils.isString(1)': true })).toBe(true);
-  });
-});
-"
-`;
-
-exports[`Creator write to stdout #2 1`] = `
-"export function mayContain(str1, str2) {
-  return str1 && str1.indexOf(str2) !== -1;
-}
-
-// Valid tests: 100.00%
-
-describe('mayContain', () => {
-  test('example 1', () => {
-    expect(mayContain('foo', 'fooo')).toBeOneInstanceOf(['Boolean']); // fixme: could be replaced with something more specific
-  });
-});
-"
-`;
-
-exports[`Creator write to stdout #3 1`] = `
-"export function each(obj, iterator, context) {
-  _forEach(obj, iterator, context);
-}
-
-// Valid tests: 75.00%
-
-describe('each', () => {
-  test('example 1', () => {
     expect(
-      easy.utils.each([1, 2, 3], (value, index) => {
-        easy.console.log(index, value);
-      }),
-    ).toEqual();
+      mock(() => contains('foo', 'fooo'), { 'easy.utils.isString(1)': true }, func => eval(func)),
+    ).toBe(false);
   });
 
   test('example 2', () => {
     expect(
-      easy.utils.each({ foo: 'bar', baz: 'bar' }, (value, key) => {
-        easy.console.log(key, value);
-      }),
-    ).toEqual();
-  });
-
-  test('example 3', () => {
-    throw new SyntaxError('Unexpected token var');
-    /* var utils = {
-    power: function (base, exponent) {
-        return Math.pow(base, exponent);
-    }
-};
-
-easy.utils.each([1, 2, 3], function (value, index) {
-    // \\"this\\" references the utils object where the function \\"power\\" is available
-    easy.console.log(index, value, this.power(value));
-}, utils); */
-  });
-
-  test('example 4', () => {
-    expect(
-      easy.utils.each({ foo: 'bar', baz: 'bar' }, function (value, key) {
-        easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
-      }),
-    ).toEqual();
-  });
-});
-"
-`;
-
-exports[`Creator write to stdout #4 1`] = `
-"export function contains() {}
-
-// Valid tests: 0%
-"
-`;
-
-exports[`Creator write to stdout 1`] = `
-"export function contains(str1, str2) {
-  return str1 && str1.indexOf(str2) !== -1;
-}
-
-// Valid tests: 100.00%
-
-describe('contains', () => {
-  test('example 1', () => {
-    expect(contains('foo', 'fooo')).toBe(false);
-  });
-
-  test('example 2', () => {
-    expect(contains('hey', 'ey')).toBe(true);
+      mock(() => contains('hey', 'ey'), { 'easy.utils.isString(1)': true }, func => eval(func)),
+    ).toBe(true);
   });
 });
 "
@@ -182,4 +117,87 @@ describe('contains', () => {
 });
 ",
 ]
+`;
+
+exports[`Creator writes to stdout #2 1`] = `
+"export function mayContain(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+
+// Valid tests: 100.00%
+
+describe('mayContain', () => {
+  test('example 1', () => {
+    expect(mayContain('foo', 'fooo')).toBeOneInstanceOf(['Boolean']); // fixme: could be replaced with something more specific
+  });
+});
+"
+`;
+
+exports[`Creator writes to stdout #3 1`] = `
+"export function each(obj, iterator, context) {
+  _forEach(obj, iterator, context);
+}
+
+// Valid tests: 75.00%
+
+describe('each', () => {
+  test('example 1', () => {
+    expect(
+      easy.utils.each([1, 2, 3], (value, index) => {
+        easy.console.log(index, value);
+      }),
+    ).toEqual();
+  });
+
+  test('example 2', () => {
+    expect(
+      easy.utils.each({ foo: 'bar', baz: 'bar' }, (value, key) => {
+        easy.console.log(key, value);
+      }),
+    ).toEqual();
+  });
+
+  test('example 3', () => {
+    throw new SyntaxError('Unexpected token var');
+    /* test('example 3', () => {
+      expect(var utils = {    power: function (base, exponent) {        return Math.pow(base, exponent)    }}easy.utils.each([    1,    2,    3], function (value, index) {    easy.console.log(index, value, this.power(value))}, utils)).not.toThrow(); // fixme: could be replaced with something more specific
+    }) */
+  });
+
+  test('example 4', () => {
+    expect(
+      easy.utils.each({ foo: 'bar', baz: 'bar' }, function (value, key) {
+        easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
+      }),
+    ).not.toThrow(); // fixme: could be replaced with something more specific
+  });
+});
+"
+`;
+
+exports[`Creator writes to stdout #4 1`] = `
+"export function contains() {}
+
+// Valid tests: 0%
+"
+`;
+
+exports[`Creator writes to stdout 1`] = `
+"export function contains(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+
+// Valid tests: 100.00%
+
+describe('contains', () => {
+  test('example 1', () => {
+    expect(contains('foo', 'fooo')).toBe(false);
+  });
+
+  test('example 2', () => {
+    expect(contains('hey', 'ey')).toBe(true);
+  });
+});
+"
 `;
