@@ -129,4 +129,18 @@ describe('#mock', () => {
       'obj.abc': 5,
     }, func => eval(func))).toBe(15);
   });
+
+  test('eval-like', () => {
+    expect(mock('contains()', {
+      'contains()': 10,
+    }, func => eval(func))).toBe(10);
+  });
+});
+
+describe('#mock.async', () => {
+  test('eval-like', async () => {
+    expect(await mock.async('contains().then(x => x)', {
+      'contains()': () => Promise.resolve(10),
+    }, func => eval(func))).toBe(10);
+  });
 });

@@ -1,5 +1,4 @@
 import {
-  toResult,
   isFunction,
   wrap,
   assertAccess,
@@ -8,8 +7,10 @@ import {
   evaluateAsync,
   isPrimitive,
   getFunctionBody,
+  isAsyncFunction,
   getFunctionParams,
 } from 'src/utils';
+
 
 function call() { // eslint-disable-line no-unused-vars
   return '2';
@@ -65,10 +66,10 @@ describe('#wrap', () => {
   });
 
   test('mock functions', () => {
-    expect(wrap.bind({ call }, 'call', JSON.stringify({}))()).toBe('mock(call, {}, func => eval(func))');
-    expect(wrap('call()', JSON.stringify({}))).toBe('mock(() => call(), {}, func => eval(func))');
-    expect(wrap('call()\ncall2()', JSON.stringify({})))
-      .toBe('mock(() => eval(`call()\ncall2()`), {}, func => eval(func))');
+    expect(wrap.call({ call }, 'call', JSON.stringify({})))
+      .toBe('mock(call, {}, func => eval(func))');
+    expect(wrap.call({ call }, 'call', JSON.stringify({ call: 5 })))
+      .toBe('mock(call, {"call":5}, func => eval(func))');
   });
 
   test('clever wrapping', () => {
@@ -220,14 +221,6 @@ describe('#isFunction', () => {
   expect(isFunction('[].forEach')).toBe(true);
 });
 
-describe('#toResult', () => {
-  expect(toResult(';[].forEach')).toBe('[].forEach');
-  expect(toResult(';[].forEach;;')).toBe('[].forEach');
-  expect(toResult('[].forEach')).toBe('[].forEach');
-  expect(toResult(';;[].forEach')).toBe('[].forEach');
-  expect(toResult(';;[].forEach;;')).toBe('[].forEach');
-});
-
 describe('#getFunctionBody', () => {
   test('normal functions', () => {
     function contains() {
@@ -237,8 +230,26 @@ describe('#getFunctionBody', () => {
     expect(getFunctionBody(contains)).toBe('{\n    return forEach();\n}');
   });
 
-  // test('generators')
-  // test('arrow')
+  test('accepts string (not recommended though)', () => {
+    expect(() => {
+      getFunctionBody(`() => {
+          const arr = [10, 5, 3];
+          arr[2];
+      }`)
+    }).not.toThrow();
+  });
+
+  test('arrow functions', () => {
+    const arrow = () => {
+      const arr = [10, 5, 3];
+      arr[2];
+    };
+
+    expect(getFunctionBody(arrow)).toMatchSnapshot();
+  });
+
+  test('generators', () => {
+  });
   // test('iife')
 });
 
@@ -257,5 +268,30 @@ describe('#getFunctionParams', () => {
     }
 
     expect(getFunctionParams(contains)).toEqual([]);
+  });
+
+  test('doesn\'t fail when non-function is given', () => {
+    expect(getFunctionParams('2')).toEqual([]);
+  });
+});
+
+describe('#isAsyncFunction', () => {
+  test('returns true for async functions', () => {
+    expect(isAsyncFunction(async () => {})).toBe(true);
+    expect(isAsyncFunction(new ((async () => {}).constructor)())).toBe(true);
+  });
+
+  test('returns false for literally everything else', () => {
+    expect(isAsyncFunction(() => {})).toBe(false);
+    // eslint-disable-next-line prefer-arrow-callback
+    expect(isAsyncFunction(function x() {})).toBe(false);
+    // eslint-disable-next-line no-empty-function
+    expect(isAsyncFunction(function* x() {})).toBe(false);
+    expect(isAsyncFunction(Function)).toBe(false);
+    expect(isAsyncFunction(Promise.prototype.then)).toBe(false);
+    expect(isAsyncFunction(2)).toBe(false);
+    expect(isAsyncFunction('')).toBe(false);
+    expect(isAsyncFunction([])).toBe(false);
+    expect(isAsyncFunction()).toBe(false);
   });
 });

@@ -1,9 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Creator async 1`] = `
+exports[`Creator async.js 1`] = `
 "export function getFromURL(str) {
   return fetch(str);
 }
+export default { getFromURL };
 
 // Valid tests: 100.00%
 
@@ -36,6 +37,7 @@ exports[`Creator handles invalid examples 1`] = `
 "export function mayContain(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
+export default { mayContain };
 
 // Valid tests: 100.00%
 
@@ -47,13 +49,31 @@ describe('mayContain', () => {
 "
 `;
 
-exports[`Creator mocked 1`] = `
+exports[`Creator invalid syntax 1`] = `
+"export function mayContain(str1, str2) {
+  return true;
+}
+export default { mayContain };
+
+// Valid tests: 0%
+
+describe('undefined', () => {
+  test('example 1', () => {
+    throw new SyntaxError('Empty expect');
+    /* expect().toBeOneInstanceOf([\\"Boolean\\"]); // fixme: could be replaced with something more specific */
+  });
+});
+"
+`;
+
+exports[`Creator mocked-easy.js 1`] = `
 "export function contains(str1, str2) {
   if (easy.utils.isString(str1)) {
     return str1 && str1.indexOf(str2) !== -1;
   }
   return false;
 }
+export default { contains };
 
 // Valid tests: 100.00%
 
@@ -78,9 +98,13 @@ Array [
   "export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
+export default { contains };
 ",
   "// Valid tests: 100.00%
-import { contains } from './trash-ar88scjoshu.exports.js';
+import __imports__, { contains } from './trash-ar88scjoshu.exports.js';
+
+global.__imports__ = __imports__;
+Object.assign(global, __imports__);
 
 describe('contains', () => {
   test('example 1', () => {
@@ -100,11 +124,13 @@ Array [
   "export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
+export default { contains };
 ",
   "// Valid tests: 100.00%
-import * as __imports__ from './trash-arbb88scjoshu.exports.js';
+import __imports__, { contains } from './trash-arbb88scjoshu.exports.js';
 
 global.__imports__ = __imports__;
+Object.assign(global, __imports__);
 
 describe('contains', () => {
   test('example 1', () => {
@@ -123,6 +149,7 @@ exports[`Creator writes to stdout #2 1`] = `
 "export function mayContain(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
+export default { mayContain };
 
 // Valid tests: 100.00%
 
@@ -138,8 +165,9 @@ exports[`Creator writes to stdout #3 1`] = `
 "export function each(obj, iterator, context) {
   _forEach(obj, iterator, context);
 }
+export default { each };
 
-// Valid tests: 75.00%
+// Valid tests: 100.00%
 
 describe('each', () => {
   test('example 1', () => {
@@ -147,29 +175,56 @@ describe('each', () => {
       easy.utils.each([1, 2, 3], (value, index) => {
         easy.console.log(index, value);
       }),
-    ).toEqual();
+    ).not.toThrow(); // fixme: could be replaced with something more specific
   });
 
   test('example 2', () => {
     expect(
-      easy.utils.each({ foo: 'bar', baz: 'bar' }, (value, key) => {
-        easy.console.log(key, value);
-      }),
-    ).toEqual();
+      easy.utils.each(
+        {
+          foo: 'bar',
+          baz: 'bar',
+        },
+        (value, key) => {
+          easy.console.log(key, value);
+        },
+      ),
+    ).not.toThrow(); // fixme: could be replaced with something more specific
   });
 
   test('example 3', () => {
-    throw new SyntaxError('Unexpected token var');
-    /* test('example 3', () => {
-      expect(var utils = {    power: function (base, exponent) {        return Math.pow(base, exponent)    }}easy.utils.each([    1,    2,    3], function (value, index) {    easy.console.log(index, value, this.power(value))}, utils)).not.toThrow(); // fixme: could be replaced with something more specific
-    }) */
+    expect(
+      evaluate(
+        () => {
+          const utils = {
+            power(base, exponent) {
+              return Math.pow(base, exponent);
+            },
+          };
+          easy.utils.each(
+            [1, 2, 3],
+            function (value, index) {
+              easy.console.log(index, value, this.power(value));
+            },
+            utils,
+          );
+        },
+        func => eval(func),
+      ),
+    ).not.toThrow(); // fixme: could be replaced with something more specific
   });
 
   test('example 4', () => {
     expect(
-      easy.utils.each({ foo: 'bar', baz: 'bar' }, function (value, key) {
-        easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
-      }),
+      easy.utils.each(
+        {
+          foo: 'bar',
+          baz: 'bar',
+        },
+        function (value, key) {
+          easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
+        },
+      ),
     ).not.toThrow(); // fixme: could be replaced with something more specific
   });
 });
@@ -178,6 +233,7 @@ describe('each', () => {
 
 exports[`Creator writes to stdout #4 1`] = `
 "export function contains() {}
+export default { contains };
 
 // Valid tests: 0%
 "
@@ -187,6 +243,7 @@ exports[`Creator writes to stdout 1`] = `
 "export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
+export default { contains };
 
 // Valid tests: 100.00%
 

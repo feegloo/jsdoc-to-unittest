@@ -184,6 +184,7 @@ describe('#parseKey', () => {
     expect(() => parseKey('foo.bar[Symbol.hasPrimitive]()')).not.toThrow();
   });
 
+
   test('raises SyntaxError', () => {
     expect(() => parseKey(';;;-/\\\\--;;;')).toThrow(SyntaxError);
   });
@@ -355,6 +356,27 @@ describe('#getPath', () => {
     ]);
   });
 
+  test('nested calls #2', () => {
+    function forEach(func) {
+      return func();
+    }
+
+    function context() {
+      return foo.bar.baz;
+    }
+
+    function contains() {
+      return forEach(context());
+    }
+
+    expect(getPath.call(func => eval(func), 'contains()', true)).toEqual([
+      ['contains'],
+      ['forEach'],
+      ['context'],
+      ['foo', 'bar', 'baz'],
+    ]);
+  });
+
   test('\'inaccessible\' nested calls', () => {
     function forEach(func) {
       return func();
@@ -370,9 +392,9 @@ describe('#getPath', () => {
 
     expect(getPath.call(func => eval(func), 'contains()', true)).toEqual([
       ['contains'],
+      ['forEach'],
       ['context'],
       ['foo', 'bar', 'baz'],
-      ['forEach'],
     ]);
   });
 });
@@ -393,6 +415,7 @@ describe('#isCallable', () => {
   test('multiple chains with all flag', () => {
     expect(isCallable('foo.bar();foo.bar', ['foo.bar'], true)).toBe(false);
     expect(isCallable('foo.bar();foo.bar()', ['foo.bar'], true)).toBe(true);
+    expect(isCallable('foo[0].bar();foo.bar()', ['foo[0].bar'], true)).toBe(true);
   });
 });
 

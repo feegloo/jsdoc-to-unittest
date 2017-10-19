@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`#getFunctionBody arrow functions 1`] = `
+"{
+    const arr = [
+        10,
+        5,
+        3
+    ];
+    arr[2];
+}"
+`;

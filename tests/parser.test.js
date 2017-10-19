@@ -78,17 +78,7 @@ describe('Parser', () => {
       return str1 && str1.indexOf(str2) !== -1;
     }`);
 
-    expect(samples[0].examples).toEqual([
-      {
-        code: "contains('hey', 'ey'); // true",
-        mocks: {
-          'contains(1,2)': false,
-        },
-        name: 'contains',
-        result: true,
-        type: 'value',
-      }],
-    );
+    expect(samples[0].examples).toMatchSnapshot();
   });
 
   test('supports async', async () => {

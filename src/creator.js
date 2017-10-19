@@ -31,14 +31,15 @@ class TestItem {
   }
 
   renderEquality() {
+    if (this.type !== 'no-throw' && typeof this.result === 'string' && !this.result.length) {
+      this.type = 'no-throw';
+      return this.renderEquality();
+    }
+
     switch (this.type) {
       case 'instance':
         return `toBeOneInstanceOf(${JSON.stringify(this.result)}); // fixme: could be replaced with something more specific`;
       case 'value':
-        if (typeof this.result === 'string') {
-          return `toBe('${this.result}');`;
-        }
-
         return `toBe(${this.result});`;
       case 'no-throw':
         return 'not.toThrow(); // fixme: could be replaced with something more specific';
@@ -52,26 +53,21 @@ class TestItem {
       this.type = 'no-throw';
     }
 
-    const test = this.printName(`expect(${this.async ? 'await ' : ''}${wrap(this.code, this.mocks, this.mockName)}).${this.renderEquality()}`);
+    const wrapped = wrap(this.code, this.mocks, this.mockName);
+    const code = `expect(${this.async ? 'await ' : ''}${wrapped}).${this.renderEquality()}`;
+    const test = this.printName(code);
+
+    if (!wrapped.length) {
+      return this.printError({ ex: new SyntaxError('Empty expect'), code });
+    }
 
     const { ex } = validateSyntax(test);
     if (ex) {
-      return this.printError({ ex, code: test });
+      return this.printError({ ex, code });
     }
 
     this.valid = true;
     return test;
-  }
-
-  get undefined() {
-    try {
-      Function(this.imports.join(','), this.code)();
-    } catch (ex) {
-      return ex instanceof ReferenceError || (ex instanceof TypeError && ex.message.includes('null or undefined'));
-    }
-
-    // istanbul ignore next
-    return false;
   }
 
   [Symbol.toPrimitive](hint) {
@@ -98,16 +94,15 @@ class Test {
     exports,
     async,
     partials = [],
-    namedImports = false,
   }) {
     this.filename = filename;
-    this.exportsFileName = filename.replace(/\.js$/, '.exports.js');
+    const splitFilename = filename.split('/');
+    this.exportsFileName = splitFilename[splitFilename.length - 1].replace(/\.js$/, '.exports.js');
     this.stdout = stdout;
     this.samples = samples;
     this.imports = imports;
     this.exports = exports;
     this.partials = partials;
-    this.namedImports = namedImports;
     this.async = async;
     this.stats = {
       total: 0,
@@ -117,14 +112,13 @@ class Test {
 
   printImports() {
     if (this.stdout) return '';
-    if (this.namedImports) {
-      return `import {
-        ${this.imports.map(name => name).join(',\n')}
+    return `import __imports__, {
+       ${this.imports.join(',\n')}
       } from './${this.exportsFileName}';
+      
+      global.__imports__ = __imports__;
+      Object.assign(global, __imports__);
       `;
-    }
-
-    return `import * as __imports__ from './${this.exportsFileName}';\nglobal.__imports__ = __imports__;\n`;
   }
 
   printPartials() {
@@ -132,9 +126,14 @@ class Test {
   }
 
   printExports() {
+    if (!this.imports.length) {
+      return '';
+    }
+
     return prettify([
       this.exports.map(func => `export ${func}`).join('\n\n'),
       ';',
+      `export default { ${this.imports.join(',\n')} };`,
     ].join('\n'));
   }
 

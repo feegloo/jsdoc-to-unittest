@@ -1,9 +1,47 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`#cli array-complement.js matches snapshot 1`] = `
+"export function arrayComplement(array) {
+  const indexes = Array.prototype.slice.call(arguments, 1);
+  return easy.utils.filter(array, (value, arrIndex) => !easy.utils.inArray(indexes, arrIndex));
+}
+export default { arrayComplement };
+
+// Valid tests: 100.00%
+
+describe('arrayComplement', () => {
+  test('example 1', () => {
+    expect(
+      evaluate(
+        () => {
+          const arr = [10, 5, 3];
+          frosmo.site.utils.arrayComplement(arr, 1);
+        },
+        func => eval(func),
+      ),
+    ).toEqual([10, 3]);
+  });
+
+  test('example 2', () => {
+    expect(
+      evaluate(
+        () => {
+          const arr = ['a', 'b', 'c'];
+          frosmo.site.utils.arrayComplement(arr, 0, 2);
+        },
+        func => eval(func),
+      ),
+    ).toEqual(['b']);
+  });
+});
+"
+`;
+
 exports[`#cli creates async test 1`] = `
 "export function getFromURL(str) {
   return fetch(str);
 }
+export default { getFromURL };
 
 // Valid tests: 100.00%
 
@@ -26,6 +64,7 @@ exports[`#cli creates test 1`] = `
 "export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
+export default { contains };
 
 // Valid tests: 100.00%
 

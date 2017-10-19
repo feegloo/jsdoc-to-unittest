@@ -123,7 +123,7 @@ describe('Creator', () => {
     expect(out).toMatchSnapshot();
   });
 
-  test('mocked', async () => {
+  test('mocked-easy.js', async () => {
     expect(await create({
       filename: '',
       stdout: true,
@@ -134,13 +134,24 @@ describe('Creator', () => {
     })).toMatchSnapshot();
   });
 
-  test('async', async () => {
+  test('async.js', async () => {
     expect(await create({
       filename: '',
       stdout: true,
       namedImports: true,
       ...parse(
         await readFileAsync(path.resolve(__dirname, 'fixtures/async.js'), 'utf-8'),
+      ),
+    })).toMatchSnapshot();
+  });
+
+  test('invalid syntax', async () => {
+    expect(await create({
+      filename: '',
+      stdout: true,
+      namedImports: true,
+      ...parse(
+        await readFileAsync(path.resolve(__dirname, 'fixtures/invalid-syntax.js'), 'utf-8'),
       ),
     })).toMatchSnapshot();
   });

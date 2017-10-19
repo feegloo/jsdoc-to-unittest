@@ -1,4 +1,4 @@
-import { listMissingDependencies } from 'src/resolver';
+import listMissingDependencies from 'src/resolver';
 
 describe('#listMissingDependencies', () => {
   test('works', () => {
@@ -17,6 +17,12 @@ describe('#listMissingDependencies', () => {
       kind: 'TypeError',
       path: ['easy', 'utils'],
     }]);
+  });
+
+  test('works for other types than functions', () => {
+    expect(listMissingDependencies('x.y', { x: { y: 4 } })).toEqual([]);
+    expect(listMissingDependencies('x.y', { x: { y: {} } })).toEqual([]);
+    expect(listMissingDependencies('x.y', { x: { y: 'x' } })).toEqual([]);
   });
 
   test('path is joined as expected', () => {

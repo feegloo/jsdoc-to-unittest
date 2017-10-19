@@ -2,19 +2,8 @@ import escodegen from 'escodegen';
 import doctrine from 'doctrine';
 import * as acorn from 'acorn';
 import * as walk from 'acorn/dist/walk';
-import { toResult, stripComments } from './utils';
+import { stripSemicolons, stripComments, isPrimitive, validateSyntax } from './utils';
 import { getPath } from './analyzer';
-
-function getLines(code) {
-  const lines = code.split(/[\n]+/);
-
-  return {
-    lines,
-    commentedOut: lines
-      .map(stripComments)
-      .filter(item => item.trim().length),
-  };
-}
 
 class Sample {
   constructor({
@@ -97,22 +86,15 @@ class Sample {
         data.type = 'value';
         if (typeof result === 'string') {
           try {
-            data.result = result.trim();
-            data.result = JSON.parse(toResult(result).trim());
-          } catch (ex) {
-            data.type = 'default';
-          }
+            const type = Function(`return ${stripSemicolons(stripComments(result))}`)(); // fixme: sandbox me, please.
+            data.type = isPrimitive(type) ? 'value' : 'equal';
+            data.result = JSON.stringify(type);
+          } catch (ex) {}
         }
       }
-
-      // if (commentedOut.length > 1) {
-      //   data.code = commentedOut.join(';');
-      // } else {
-      //   data.code = commentedOut.join('');
-      // }
     } catch (ex) {}
 
-    if (data.type === 'default' && this.returns) {
+    if ((data.type === 'default' || validateSyntax(data.result).ex !== null) && this.returns) {
       data.type = 'instance';
       if (Array.isArray(this.returns.elements)) {
         data.result = this.returns.elements.map(({ type, name }) => {

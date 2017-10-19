@@ -1,17 +1,31 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Parser detects mocks 1`] = `
+Array [
+  Object {
+    "code": "contains('hey', 'ey'); // true",
+    "mocks": Object {
+      "contains(1,2)": false,
+    },
+    "name": "contains",
+    "result": "true",
+    "type": "value",
+  },
+]
+`;
+
 exports[`Parser happy path works 1`] = `
 Array [
   Object {
     "code": "contains('foo', 'fooo'); // false",
     "name": "contains",
-    "result": false,
+    "result": "false",
     "type": "value",
   },
   Object {
     "code": "contains('hey', 'ey'); // true;",
     "name": "contains",
-    "result": true,
+    "result": "true",
     "type": "value",
   },
 ]
@@ -47,8 +61,8 @@ easy.utils.each([1, 2, 3], function (value, index) {
     easy.console.log(index, value, this.power(value));
 }, utils);",
     "name": "each",
-    "result": "",
-    "type": "default",
+    "result": " \\"this\\" references the utils object where the function \\"power\\" is available",
+    "type": "value",
   },
   Object {
     "code": "easy.utils.each({foo: 'bar', baz: 'bar'}, function (value, key) {
@@ -56,8 +70,8 @@ easy.utils.each([1, 2, 3], function (value, index) {
     easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
 });",
     "name": "each",
-    "result": "",
-    "type": "default",
+    "result": " \\"this\\" references the global object where the built-in String object is available",
+    "type": "value",
   },
 ]
 `;
@@ -83,7 +97,7 @@ Object {
             "fetch('string')": "hello world  ",
           },
           "name": "getFromURL",
-          "result": "world",
+          "result": "\\"world\\"",
           "type": "value",
         },
       ],

@@ -1,5 +1,6 @@
 import { evaluate, evaluateAsync, getFunctionBody, getFunctionParams } from './utils';
 import feedback from './feedback';
+import joinPath from './path';
 
 function collectFeedback(argumentsList) {
   return argumentsList.map(feedback);
@@ -14,7 +15,7 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
   let current = null;
   let included = false;
   let excluded = false;
-  const instance = new Proxy(function () {}, {
+  const instance = new Proxy(function () {}, { // eslint-disable-line prefer-arrow-callback
     apply(target, thisArg, argumentsList) {
       if (argumentsList.some(item => item === instance)) {
         ret.pop();
@@ -31,7 +32,7 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
       } catch (ex) {}
 
       try {
-        const ref = _eval(current.path.join('.')); // fixme: use path builder
+        const ref = _eval(joinPath(current.path));
         if (typeof ref === 'function') {
           const args = {};
           getFunctionParams(ref).forEach((name, i) => {
@@ -124,12 +125,18 @@ export async function parseKeyAsync(exp, _eval) {
       },
     }),
   });
+
   return ret.map((item) => {
     if (item.special !== 'Promise') {
       return item;
     }
 
-    const { path, access, calls } = item;
+    const { path, access } = item;
+    if (path[0] === '_asyncTestExports') {
+      path.shift();
+      access.splice(1, 1);
+    }
+
     const firstThenIndex = path.indexOf('then');
     path.splice(firstThenIndex, path.length);
     const mergedAccess = access.reduce((acc, cur) => {
@@ -190,6 +197,10 @@ export function fallToGlobal(target, _eval, oldKey = '') {
       return true;
     },
     get(_, key) {
+      if (key === '_asyncTestExports') { // fixme: that _asyncTestExports
+        return fallToGlobal(target, _eval);
+      }
+
       if (key === Symbol.unscopables) return null;
       if (key === 'arguments') {
         return mappedArgs.get(target) || [];

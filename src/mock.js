@@ -42,12 +42,35 @@ function mocker(cur, { async, fullPath, accesses, accessPath, value, ...rest }) 
   });
 }
 
+function createFunction(Constructor, func, obj, _eval) {
+  const [firstAccess, ...rest] = listAccesses.call(_eval, func);
+  if (firstAccess && rest && rest.length === 0) {
+    if (firstAccess.length > 2 && Array.isArray(firstAccess[firstAccess.length - 1])) {
+      return Constructor(
+        's',
+        `with(s){return(${func.toString()});}`,
+      ).call(null, fallToGlobal(obj, _eval));
+    }
+  }
+
+  return Constructor(
+    's',
+    `with(s){return(${func.toString()}).apply(this,arguments)}`,
+  ).call(null, fallToGlobal(obj, _eval));
+}
+
 export default function mock(func, mocks, _eval) {
   const obj = {};
 
   for (const [path, value] of Object.entries(mocks)) {
-    const accesses = listAccesses.call(_eval, `(${func.toString()})()`, [path]);
     const [{ path: fullPath, access: accessPath, ...rest }] = parseKey(path, _eval);
+    const accesses = listAccesses.call(_eval, func, [path]);
+    if (!accesses.length) {
+      accesses.push(
+        ...listAccesses.call(_eval, `(${func.toString()})()`, [path]),
+      );
+    }
+
     mocker(obj, {
       async: false,
       accesses,
@@ -58,10 +81,7 @@ export default function mock(func, mocks, _eval) {
     });
   }
 
-  return Function(
-    's',
-    `with(s){return(${func.toString()}).apply(this,arguments)}`,
-  ).call(null, fallToGlobal(obj, _eval));
+  return createFunction(Function, func, obj, _eval);
 }
 
 mock.async = async function (func, mocks, _eval) {
@@ -80,8 +100,5 @@ mock.async = async function (func, mocks, _eval) {
     });
   }
 
-  return AsyncFunction(
-    's',
-    `with(s){return(${func.toString()}).apply(this,arguments)}`,
-  ).call(null, fallToGlobal(obj, _eval));
+  return createFunction(AsyncFunction, func, obj, _eval);
 };
