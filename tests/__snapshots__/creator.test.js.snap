@@ -28,11 +28,6 @@ exports[`Creator empty 1`] = `
 "
 `;
 
-exports[`Creator fails gracefully 1`] = `
-"\\"Cannot read property 'map' of null\\";
-"
-`;
-
 exports[`Creator handles invalid examples 1`] = `
 "export function mayContain(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
@@ -91,32 +86,6 @@ describe('contains', () => {
   });
 });
 "
-`;
-
-exports[`Creator writes to file - named imports 1`] = `
-Array [
-  "export function contains(str1, str2) {
-  return str1 && str1.indexOf(str2) !== -1;
-}
-export default { contains };
-",
-  "// Valid tests: 100.00%
-import __imports__, { contains } from './trash-ar88scjoshu.exports.js';
-
-global.__imports__ = __imports__;
-Object.assign(global, __imports__);
-
-describe('contains', () => {
-  test('example 1', () => {
-    expect(contains('foo', 'fooo')).toBe(false);
-  });
-
-  test('example 2', () => {
-    expect(contains('hey', 'ey')).toBe(true);
-  });
-});
-",
-]
 `;
 
 exports[`Creator writes to file 1`] = `
@@ -228,14 +197,6 @@ describe('each', () => {
     ).not.toThrow(); // fixme: could be replaced with something more specific
   });
 });
-"
-`;
-
-exports[`Creator writes to stdout #4 1`] = `
-"export function contains() {}
-export default { contains };
-
-// Valid tests: 0%
 "
 `;
 

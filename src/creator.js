@@ -1,6 +1,11 @@
+import fs from 'fs';
+import util from 'util';
 import prettify from './prettifier';
+import parse from './parser';
 import { wrap, validateSyntax } from './utils';
 import { readFile, writeFile, toStdout } from './fs';
+
+const readFileAsync = util.promisify(fs.readFile);
 
 class TestItem {
   constructor({
@@ -87,16 +92,17 @@ class TestItem {
 
 class Test {
   constructor({
-    filename = '',
+    output = '',
     stdout,
     samples,
     imports,
     exports,
     async,
+    inline,
     partials = [],
   }) {
-    this.filename = filename;
-    const splitFilename = filename.split('/');
+    this.filename = output;
+    const splitFilename = output.split('/');
     this.exportsFileName = splitFilename[splitFilename.length - 1].replace(/\.js$/, '.exports.js');
     this.stdout = stdout;
     this.samples = samples;
@@ -104,6 +110,7 @@ class Test {
     this.exports = exports;
     this.partials = partials;
     this.async = async;
+    this.inline = inline;
     this.stats = {
       total: 0,
       valid: 0,
@@ -111,7 +118,7 @@ class Test {
   }
 
   printImports() {
-    if (this.stdout) return '';
+    if (this.stdout || this.inline || !this.imports.length) return '';
     return `import __imports__, {
        ${this.imports.join(',\n')}
       } from './${this.exportsFileName}';
@@ -185,18 +192,22 @@ class Test {
     }
 
     if (this.stdout) {
-      return toStdout(prettify(`${this.printExports()}\n${output}`));
+      return toStdout(await prettify(`${await this.printExports()}\n${output}`));
     }
 
     return Promise.all([
-      writeFile(this.exportsFileName, this.printExports()),
+      this.exports.length ? writeFile(this.exportsFileName, await this.printExports()) : Promise.resolve(''),
       writeFile(this.filename, output),
     ]);
   }
 }
 
 export default async (args) => {
-  const test = new Test(args);
-  // todo: move (from cli) readFile here etc...
+  const content = await readFileAsync(args.input, 'utf-8');
+  const parsed = await parse(content, {
+    extractFunctions: args.export,
+  });
+
+  const test = new Test({ ...args, ...parsed });
   return test.write();
 };

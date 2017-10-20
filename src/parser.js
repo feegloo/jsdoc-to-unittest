@@ -114,7 +114,7 @@ class Sample {
 }
 
 
-export default (code) => {
+export default (code, { extractFunctions = true } = {}) => {
   const funcs = {};
   const parsed = [];
 
@@ -129,11 +129,13 @@ export default (code) => {
     },
   });
 
-  walk.simple(ast, {
-    FunctionDeclaration(node) {
-      funcs[node.id.name] = escodegen.generate(node, { comment: false });
-    },
-  });
+  if (extractFunctions) {
+    walk.simple(ast, {
+      FunctionDeclaration(node) {
+        funcs[node.id.name] = escodegen.generate(node, { comment: false });
+      },
+    });
+  }
 
   return {
     exports: Object.values(funcs),

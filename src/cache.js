@@ -19,7 +19,7 @@ export default {
     }
   },
 
-  analyzer: new class extends Map {
+  analyzer: new class extends Map { // eslint-disable-line new-parens
     cache(key, result) {
 
     }

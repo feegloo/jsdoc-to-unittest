@@ -8,6 +8,6 @@ const readFileAsync = util.promisify(fs.readFile);
 describe('Prettifier', () => {
   test('matches snapshot', async () => {
     const content = await readFileAsync(path.resolve(__dirname, './fixtures/bad-format.js'), 'utf-8');
-    expect(prettify(content)).toMatchSnapshot();
+    expect(await prettify(content)).toMatchSnapshot();
   });
 });
