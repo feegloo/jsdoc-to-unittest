@@ -36,6 +36,7 @@
   "jest": {
     "collectCoverageFrom": [
       "src/**/*.js",
+      "__mocks__/**/*.js",
       "!src/fs.js"
     ],
     "coverageThreshold": {
@@ -61,7 +62,6 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/fixtures/",
-      "/__mocks__/",
       "<rootDir>/*.js",
       "trash-*.test.js"
     ],

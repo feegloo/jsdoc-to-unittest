@@ -1,3 +1,4 @@
+/* global mock */
 // Valid tests: 100.00%
 import __imports__, { getFromURL } from './async.test.exports.js';
 

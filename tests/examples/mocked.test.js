@@ -1,6 +1,6 @@
 /* global mock */
 export function contains(str1, str2) { // eslint-disable-line import/prefer-default-export
-  if (easy.utils.isString(str1)) { // eslint-disable-line import/prefer-default-export
+  if (easy.utils.isString(str1)) { // eslint-disable-line no-undef
     return str1 && str1.indexOf(str2) !== -1;
   }
   return false;
