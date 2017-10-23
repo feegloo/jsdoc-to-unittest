@@ -67,7 +67,8 @@
     ],
     "moduleNameMapper": {
       "src/(.*)": "<rootDir>/src/$1.js",
-      "mocks/(.*)": "<rootDir>/__mocks__/$1.js"
+      "mocks/(.*)": "<rootDir>/__mocks__/$1.js",
+      "jest-helpers/(.*)": "<rootDir>/jest-helpers/$1.js"
     },
     "setupTestFrameworkScriptFile": "<rootDir>/jest-setup.js"
   }

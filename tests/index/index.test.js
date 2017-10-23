@@ -2,27 +2,11 @@ const path = require('path');
 const util = require('util');
 const fs = require('fs');
 const childProcess = require('child_process');
+const { spawn } = require('jest-helpers/spawn');
 
 const execFile = util.promisify(childProcess.execFile);
 const writeFileAsync = util.promisify(fs.writeFile);
 const unlinkAsync = util.promisify(fs.unlink);
-
-const babelNode = path.resolve(__dirname, '../../node_modules/.bin/babel-node');
-
-const spawn = async (filename, ...args) => {
-  const { stdout } = await execFile(babelNode, [
-    path.resolve(__dirname, '../../index.js'),
-    path.resolve(__dirname, '../fixtures/', filename),
-    ...args,
-  ], {
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-    },
-  });
-
-  return stdout;
-};
 
 describe('#index', () => {
   test('example-file 1 matches snapshot', async () => {

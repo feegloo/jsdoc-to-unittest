@@ -6,15 +6,15 @@ import { argv } from 'yargs';
 const readFileAsync = util.promisify(fs.readFile);
 
 export default async (sourceCode) => {
-  const config = {
+  const options = {
     text: sourceCode,
   };
 
   if (argv.eslint) {
-    Object.assign(config, {
-      eslintConfig: JSON.parse(await readFileAsync(argv.eslint)),
+    Object.assign(options, {
+      eslintConfig: JSON.parse(await readFileAsync(argv.eslint, 'utf-8')),
     });
   }
 
-  return format(config);
+  return format(options);
 };
