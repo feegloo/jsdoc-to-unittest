@@ -89,4 +89,11 @@ describe('Creator', () => {
       stdout: true,
     })).toMatchSnapshot();
   });
+
+  test('prevents reference errors in toBe/toEqual', async () => {
+    expect(await create({
+      input: path.resolve(__dirname, 'fixtures/contains-invalid-string.js'),
+      stdout: true,
+    })).toMatchSnapshot();
+  });
 });

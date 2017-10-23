@@ -88,6 +88,26 @@ describe('contains', () => {
 "
 `;
 
+exports[`Creator prevents reference errors in toBe/toEqual 1`] = `
+"export function contains(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1 ? 'yes' : 'no';
+}
+export default { contains };
+
+// Valid tests: 100.00%
+
+describe('contains', () => {
+  test('example 1', () => {
+    expect(contains('foo', 'fooo')).not.toThrow(); // fixme: could be replaced with something more specific
+  });
+
+  test('example 2', () => {
+    expect(contains('hey', 'ey')).not.toThrow(); // fixme: could be replaced with something more specific
+  });
+});
+"
+`;
+
 exports[`Creator resolves async name 1`] = `
 "export function _window(property, options) {
   options = easy.utils.extend(

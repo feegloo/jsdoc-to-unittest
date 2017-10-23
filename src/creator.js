@@ -2,7 +2,7 @@ import fs from 'fs';
 import util from 'util';
 import prettify from './prettifier';
 import parse from './parser';
-import { wrap, validateSyntax } from './utils';
+import { wrap, validateSyntax, evaluate } from './utils';
 import { readFile, writeFile, toStdout } from './fs';
 
 const readFileAsync = util.promisify(fs.readFile);
@@ -54,8 +54,16 @@ class TestItem {
   }
 
   print() {
-    if (validateSyntax(this.renderEquality()).ex !== null) {
-      this.type = 'no-throw';
+    if (this.type !== 'no-throw') {
+      try {
+        evaluate(this.renderEquality(), {
+          toBe() {},
+          toEqual() {},
+          toBeOneInstanceOf() {},
+        });
+      } catch (ex) {
+        this.type = 'no-throw';
+      }
     }
 
     const wrapped = wrap(this.code, this.mocks, this.mockName);
