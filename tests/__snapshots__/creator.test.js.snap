@@ -6,6 +6,7 @@ exports[`Creator async.js 1`] = `
 }
 export default { getFromURL };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('getFromURL', () => {
@@ -24,7 +25,8 @@ describe('getFromURL', () => {
 `;
 
 exports[`Creator empty 1`] = `
-"// Valid tests: 0%
+"/* global mock */
+// Valid tests: 0%
 "
 `;
 
@@ -34,6 +36,7 @@ exports[`Creator handles invalid examples 1`] = `
 }
 export default { mayContain };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('mayContain', () => {
@@ -50,6 +53,7 @@ exports[`Creator invalid syntax 1`] = `
 }
 export default { mayContain };
 
+/* global mock */
 // Valid tests: 0%
 
 describe('undefined', () => {
@@ -70,6 +74,7 @@ exports[`Creator mocked-easy.js 1`] = `
 }
 export default { contains };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('contains', () => {
@@ -94,6 +99,7 @@ exports[`Creator prevents reference errors in toBe/toEqual 1`] = `
 }
 export default { contains };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('contains', () => {
@@ -135,6 +141,7 @@ exports[`Creator resolves async name 1`] = `
 }
 export default { _window };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('window', () => {
@@ -170,7 +177,8 @@ Array [
 }
 export default { contains };
 ",
-  "// Valid tests: 100.00%
+  "/* global mock */
+// Valid tests: 100.00%
 import __imports__, { contains } from './trash-arbb88scjoshu.exports.js';
 
 global.__imports__ = __imports__;
@@ -195,6 +203,7 @@ exports[`Creator writes to stdout #2 1`] = `
 }
 export default { mayContain };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('mayContain', () => {
@@ -211,6 +220,7 @@ exports[`Creator writes to stdout #3 1`] = `
 }
 export default { each };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('each', () => {
@@ -281,6 +291,7 @@ exports[`Creator writes to stdout 1`] = `
 }
 export default { contains };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('contains', () => {

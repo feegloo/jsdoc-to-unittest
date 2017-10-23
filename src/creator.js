@@ -184,6 +184,7 @@ class Test {
   async print() {
     const samples = this.samples.map(this.printSample, this).join('\n');
     return prettify([
+      '/* global mock */',
       this.printStats(),
       this.printImports(),
       ...(await this.printPartials()),

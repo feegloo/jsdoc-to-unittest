@@ -7,6 +7,7 @@ exports[`#cli array-complement.js matches snapshot 1`] = `
 }
 export default { arrayComplement };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('arrayComplement', () => {
@@ -43,6 +44,7 @@ exports[`#cli creates async test 1`] = `
 }
 export default { getFromURL };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('getFromURL', () => {
@@ -66,6 +68,7 @@ exports[`#cli creates test 1`] = `
 }
 export default { contains };
 
+/* global mock */
 // Valid tests: 100.00%
 
 describe('contains', () => {

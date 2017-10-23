@@ -34,11 +34,11 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
       try {
         const ref = _eval(joinPath(current.path));
         if (typeof ref === 'function') {
-          const args = {};
+          const parsedArgs = {};
           getFunctionParams(ref).forEach((name, i) => {
-            args[name] = argumentsList[i];
+            parsedArgs[name] = argumentsList[i];
           });
-          ret.push(...parseKey(getFunctionBody(ref), _eval, { args }));
+          ret.push(...parseKey(getFunctionBody(ref), _eval, { args: parsedArgs }));
         }
       } catch (ex) {}
       return instance;
