@@ -3,7 +3,7 @@ import doctrine from 'doctrine';
 import * as acorn from 'acorn';
 import * as walk from 'acorn/dist/walk';
 import { stripSemicolons, stripComments, isPrimitive, validateSyntax } from './utils';
-import { getPath } from './analyzer';
+import { getPath, getPathAsync } from './analyzer';
 
 class Sample {
   constructor({
@@ -19,7 +19,7 @@ class Sample {
     });
 
     this.name = this.tags.name[0].name;
-    this.examples = this.tags.example.map(this.parseExample, this);
+    this.examples = Promise.all(this.tags.example.map(this.parseExample, this));
   }
 
   get returns() {
@@ -52,10 +52,18 @@ class Sample {
     return {};
   }
 
-  parseExample({ description: code }, i) {
+  get isAsync() {
+    return this.tags.async.length > 0;
+  }
+
+  async parseExample({ description: code }, i) {
     if (this.name === undefined) {
       try {
-        this.name = getPath(code).pop().pop();
+        if (this.isAsync) {
+          this.name = (await getPathAsync(code)).pop().pop();
+        } else {
+          this.name = getPath(code).pop().pop();
+        }
       } catch (ex) {}
     }
 
@@ -69,8 +77,8 @@ class Sample {
       ...this.parseMocks(this.tags.mock[i]),
     };
 
-    if (this.tags.async.length > 0) {
-      data.async = true;
+    if (this.isAsync) {
+      data.async = this.isAsync;
     }
 
     try {
@@ -114,7 +122,7 @@ class Sample {
 }
 
 
-export default (code, { extractFunctions = true } = {}) => {
+export default async (code, { extractFunctions = true } = {}) => {
   const funcs = {};
   const parsed = [];
 
@@ -140,6 +148,9 @@ export default (code, { extractFunctions = true } = {}) => {
   return {
     exports: Object.values(funcs),
     imports: Object.keys(funcs),
-    samples: parsed.map(obj => new Sample(obj)),
+    samples: await Promise.all(parsed.map(async (obj) => {
+      const sample = new Sample(obj);
+      return { ...sample, examples: await sample.examples };
+    })),
   };
 };

@@ -7,7 +7,7 @@ const readFileAsync = util.promisify(fs.readFile);
 
 describe('Parser', () => {
   test('happy path works', async () => {
-    const { exports, imports, samples } = parse(
+    const { exports, imports, samples } = await parse(
       await readFileAsync(path.resolve(__dirname, 'fixtures/contains.js'), 'utf-8'),
     );
 
@@ -21,7 +21,7 @@ describe('Parser', () => {
   });
 
   test('tries resolving the name', async () => {
-    const { samples } = parse(
+    const { samples } = await parse(
       await readFileAsync(path.resolve(__dirname, 'fixtures/contains-no-name.js'), 'utf-8'),
     );
 
@@ -29,7 +29,7 @@ describe('Parser', () => {
   });
 
   test('multiline examples', async () => {
-    const { exports, imports, samples } = parse(
+    const { exports, imports, samples } = await parse(
       await readFileAsync(path.resolve(__dirname, 'fixtures/each.js'), 'utf-8'),
     );
 
@@ -40,8 +40,8 @@ describe('Parser', () => {
     expect(samples[0].examples).toMatchSnapshot();
   });
 
-  test('grabs @returns', () => {
-    const { samples } = parse(`/**
+  test('grabs @returns', async () => {
+    const { samples } = await parse(`/**
      * @name contains
      *
      * @example
@@ -62,8 +62,8 @@ describe('Parser', () => {
     );
   });
 
-  test('detects mocks', () => {
-    const { samples } = parse(`/**
+  test('detects mocks', async () => {
+    const { samples } = await parse(`/**
      * @name contains
      *
      * @example
@@ -82,7 +82,7 @@ describe('Parser', () => {
   });
 
   test('supports async', async () => {
-    expect(parse(
+    expect(await parse(
       await readFileAsync(path.resolve(__dirname, 'fixtures/async.js'), 'utf-8'),
     )).toMatchSnapshot();
   });

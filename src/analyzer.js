@@ -172,6 +172,9 @@ export function getPath(func, follow) {
   return parseKey(func, this, { follow }).reduce((acc, { path }) => [...acc, path], []);
 }
 
+export const getPathAsync = async (func, follow) => (await parseKeyAsync(func, this, { follow }))
+  .reduce((acc, { path }) => [...acc, path], []);
+
 export function isCallable(func, toObserve, all = false) {
   return parseKey(func, this)
     .filter(({ path }) => toObserve.includes(path.join('.')))

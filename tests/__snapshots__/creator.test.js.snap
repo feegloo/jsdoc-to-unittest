@@ -88,6 +88,61 @@ describe('contains', () => {
 "
 `;
 
+exports[`Creator resolves async name 1`] = `
+"export function _window(property, options) {
+  options = easy.utils.extend(
+    {
+      retryInterval: 250,
+      endTime: 5000,
+    },
+    options,
+  );
+  options.global = options.global || window;
+  return new easy.Promise((resolve, reject) => {
+    easy.utils
+      .waitFor(options.retryInterval, options.endTime, () => {
+        const result = site.utils.getValueByDotString(options.global, property);
+        if (result !== undefined) {
+          resolve(result);
+          return true;
+        }
+        return undefined;
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+}
+export default { _window };
+
+// Valid tests: 100.00%
+
+describe('window', () => {
+  test('example 1', async () => {
+    expect(
+      await evaluate(
+        () => {
+          frosmo.site.utils.window('foo.bar').then((result) => {
+            console.log(result);
+          });
+          const foo = { bar: 123 };
+        },
+        func => eval(func),
+      ),
+    ).toBe(123);
+  });
+
+  test('example 2', async () => {
+    expect(
+      await frosmo.site.utils.window('someUndefinedVariable').catch((err) => {
+        console.log(err);
+      }),
+    ).toBe('timeout');
+  });
+});
+"
+`;
+
 exports[`Creator writes to file 1`] = `
 Array [
   "export function contains(str1, str2) {

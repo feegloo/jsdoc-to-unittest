@@ -82,4 +82,11 @@ describe('Creator', () => {
       stdout: true,
     })).toMatchSnapshot();
   });
+
+  test('resolves async name', async () => {
+    expect(await create({
+      input: path.resolve(__dirname, 'fixtures/async-name-resolve.js'),
+      stdout: true,
+    })).toMatchSnapshot();
+  });
 });
