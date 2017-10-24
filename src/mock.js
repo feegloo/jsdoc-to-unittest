@@ -1,5 +1,5 @@
 import { listAccesses, parseKey, fallToGlobal, parseKeyAsync, listAccessesAsync } from './analyzer';
-import { AsyncFunction } from './utils';
+import { AsyncFunction, isFunction } from './utils';
 
 function mocker(cur, { async, fullPath, accesses, accessPath, value, ...rest }) {
   fullPath.forEach((key, i, arr) => {
@@ -43,31 +43,27 @@ function mocker(cur, { async, fullPath, accesses, accessPath, value, ...rest }) 
 }
 
 function createFunction(Constructor, func, obj, _eval) {
-  const [firstAccess, ...rest] = listAccesses.call(_eval, func);
-  if (firstAccess && rest && rest.length === 0) {
-    if (firstAccess.length > 2 && Array.isArray(firstAccess[firstAccess.length - 1])) {
-      return Constructor(
-        's',
-        `with(s){return(${func.toString()});}`,
-      ).call(null, fallToGlobal(obj, _eval));
-    }
+  let end = '';
+  if (typeof func === 'function') {
+    end += '(s)';
   }
 
   return Constructor(
     's',
-    `with(s){return(${func.toString()}).apply(this,arguments)}`,
+    `return eval(\`with(s){ ${func.toString().replace(/`/g, '\\`')} }\`)${end}`,
   ).call(null, fallToGlobal(obj, _eval));
 }
 
 export default function mock(func, mocks, _eval) {
   const obj = {};
+  const src = isFunction(func) ? `(${func})()` : String(func);
 
   for (const [path, value] of Object.entries(mocks)) {
     const [{ path: fullPath, access: accessPath, ...rest }] = parseKey(path, _eval);
     const accesses = listAccesses.call(_eval, func, [path]);
     if (!accesses.length) {
       accesses.push(
-        ...listAccesses.call(_eval, `(${func.toString()})()`, [path]),
+        ...listAccesses.call(_eval, src, [path]),
       );
     }
 
@@ -86,9 +82,10 @@ export default function mock(func, mocks, _eval) {
 
 mock.async = async function (func, mocks, _eval) {
   const obj = {};
+  const src = isFunction(func) ? `(${func})()` : String(func);
 
   for (const [path, value] of Object.entries(mocks)) {
-    const accesses = await listAccessesAsync.call(_eval, `(${func.toString()})()`, [path]);
+    const accesses = await listAccessesAsync.call(_eval, src, [path]);
     const [{ path: fullPath, access: accessPath, ...rest }] = await parseKeyAsync(path, _eval);
     mocker(obj, {
       async: true,

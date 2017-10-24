@@ -31,6 +31,15 @@ describe('#mock', () => {
     }, func => eval(func))).toBe(16);
   });
 
+  test('parses multiline functions', () => {
+    expect(mock(() => {
+      var xyz = 10;
+      return abc.xyz() + xyz; // eslint-disable-line no-undef
+    }, {
+      'abc.xyz()': () => 5,
+    }, func => eval(func))).toBe(15);
+  })
+
   test('mocks functions with params', () => {
     // eslint-disable-next-line no-undef
     expect(mock(() => bar.foo.baz() + foo.bar() + foo.bar(1) + foo.bar(1, 2), {
@@ -142,5 +151,16 @@ describe('#mock.async', () => {
     expect(await mock.async('contains().then(x => x)', {
       'contains()': () => Promise.resolve(10),
     }, func => eval(func))).toBe(10);
+  });
+
+  test('multiline example', async () => {
+    expect(await mock.async(`frosmo.site.utils.window('foo.bar')
+      .then(function(result) {
+        console.log(result);    // 123
+      });
+      var foo = {bar : 123 }
+     `, {
+        'frosmo.site.utils.window(1)': () => Promise.resolve(123),
+      }, func => eval(func))).toBeUndefined();
   });
 });

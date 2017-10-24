@@ -248,6 +248,17 @@ describe('#getFunctionBody', () => {
     expect(getFunctionBody(arrow)).toMatchSnapshot();
   });
 
+  test('blockless arrow functions', () => {
+    const arrow = a => 10 + a;
+    expect(getFunctionBody(arrow)).toBe('10 + a');
+  })
+
+  test('async arrow functions', () => {
+    const a = async () => {
+
+    }
+  })
+
   test('generators', () => {
   });
   // test('iife')

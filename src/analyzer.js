@@ -190,11 +190,15 @@ function sandbox(func) {
 
 export function fallToGlobal(target, _eval, oldKey = '') {
   const mappedArgs = new WeakMap();
+  const privateScope = new WeakMap();
+  privateScope.set(target, {});
   return new Proxy(target, {
     has: () => true,
     set(_, key, value) {
       if (key === 'args') {
         mappedArgs.set(target, value);
+      } else {
+        privateScope.get(target)[key] = value;
       }
 
       return true;
@@ -207,6 +211,11 @@ export function fallToGlobal(target, _eval, oldKey = '') {
       if (key === Symbol.unscopables) return null;
       if (key === 'arguments') {
         return mappedArgs.get(target) || [];
+      }
+
+      const _scope = privateScope.get(target);
+      if (key in _scope) {
+        return _scope[key];
       }
 
       if (Reflect.has(target, key)) {

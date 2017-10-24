@@ -19,6 +19,8 @@
  * .catch(function(err) {
      *     console.log(err);  // 'timeout'
      * });
+ * @mock
+ * { 'fetch(\'string\')': () => Promise.reject('timeout') }
  *
  * @async
  * @memberof site.utils
