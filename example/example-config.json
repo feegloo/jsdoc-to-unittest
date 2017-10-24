@@ -1,0 +1,15 @@
+{
+  "target": "jest",
+  "header": "intro.js",
+  "footer": "outro.js",
+  "inline": false,
+  "globals": [
+    "it",
+    "xit",
+    "expect",
+    "describe",
+    "frosmo",
+    "beforeEach",
+    "fixtures"
+  ]
+}

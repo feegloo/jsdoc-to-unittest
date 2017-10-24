@@ -106,7 +106,10 @@ class Test {
     imports,
     exports,
     async,
+    globals = [],
     inline,
+    header,
+    footer,
     partials = [],
   }) {
     this.filename = output;
@@ -119,6 +122,9 @@ class Test {
     this.partials = partials;
     this.async = async;
     this.inline = inline;
+    this.header = header;
+    this.footer = footer;
+    this.globals = [...new Set(['mock', 'evaluate', ...globals])].join(', ');
     this.stats = {
       total: 0,
       valid: 0,
@@ -184,11 +190,13 @@ class Test {
   async print() {
     const samples = this.samples.map(this.printSample, this).join('\n');
     return prettify([
-      '/* global mock */',
+      `/* global ${this.globals} */`,
       this.printStats(),
       this.printImports(),
+      this.header,
       ...(await this.printPartials()),
       samples,
+      this.footer,
     ].join('\n'));
   }
 
