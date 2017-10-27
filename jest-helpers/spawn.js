@@ -31,7 +31,7 @@ exports.spawn = spawn;
 
 exports.spawnJest = async (...args) => {
   const filePath = path.resolve(basePath, '.cache/', `trash-${Math.random().toString(36).slice(2)}.test.js`);
-  await writeFileAsync(filePath, await spawn('babel-node', 'index.js', ...args));
+  await writeFileAsync(filePath, await spawn('babel-node', 'src/cli.js', ...args));
   let result = null;
   try {
     result = await spawn.call({ NODE_ENV: 'test' }, 'jest', `--config=${path.resolve(basePath, 'tests/index/jest.json')}`, filePath);

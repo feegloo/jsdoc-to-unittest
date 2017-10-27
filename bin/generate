@@ -1,2 +1,3 @@
 #!/usr/bin/env
-require('../dist/cli')();
+'use strict';
+require('../dist/')();

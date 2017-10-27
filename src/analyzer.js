@@ -11,18 +11,7 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
     path: [],
     access: [],
     calls: 0,
-    mapped: {
-      * [Symbol.iterator]() {
-        const mappedKeys = Object.keys(this);
-        while (mappedKeys.length) {
-          const key = mappedKeys.shift();
-          yield [
-            key.replace(/\$\d+/, ''),
-            this[key],
-          ];
-        }
-      },
-    },
+    mapped: {},
   };
   const seenKeys = new Map();
   let current = null;
@@ -70,7 +59,21 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
     },
     has(target, key) {
       if (!Reflect.has(args, key)) {
-        current = JSON.parse(JSON.stringify(obj));
+        current = {
+          ...JSON.parse(JSON.stringify(obj)),
+          mapped: {
+            * [Symbol.iterator]() {
+              const mappedKeys = Object.keys(this);
+              while (mappedKeys.length) {
+                const mappedKey = mappedKeys.shift();
+                yield [
+                  mappedKey.replace(/\$\d+/, ''),
+                  this[mappedKey],
+                ];
+              }
+            },
+          },
+        };
         ret.push(current);
         seenKeys.clear();
         included = false;
@@ -85,7 +88,8 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
         case Symbol.unscopables:
           return void 0; // eslint-disable-line no-void
         case Symbol.toPrimitive:
-          // todo: move it outside the closure, no need to allocate this function over and over again...
+          // todo: move it outside the closure,
+          // as there is no need to allocate this function over and over again...
           return function (hint) {
             target.apply(this, arguments); // eslint-disable-line prefer-rest-params
             switch (hint) {

@@ -3,7 +3,7 @@ const { spawn, spawnJest } = require('jest-helpers/spawn');
 describe('#index', () => {
   test('contains.js matches snapshot', async () => {
     expect(
-      await spawn('babel-node', 'index.js', '--input=tests/fixtures/contains.js'),
+      await spawn('babel-node', 'src/cli.js', '--input=tests/fixtures/contains.js'),
     ).toMatchSnapshot();
   });
 

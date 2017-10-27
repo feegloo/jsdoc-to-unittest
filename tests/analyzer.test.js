@@ -8,6 +8,19 @@ import {
   listAccessesAsync,
 } from 'src/analyzer';
 
+const iterator = {
+  * [Symbol.iterator]() {
+    const mappedKeys = Object.keys(this);
+    while (mappedKeys.length) {
+      const mappedKey = mappedKeys.shift();
+      yield [
+        mappedKey.replace(/\$\d+/, ''),
+        this[mappedKey],
+      ];
+    }
+  },
+};
+
 describe('#parseKey', () => {
   test('direct', () => {
     expect(parseKey('foo')).toEqual([{
@@ -16,6 +29,7 @@ describe('#parseKey', () => {
       path: ['foo'],
       mapped: {
         foo: ['access'],
+        ...iterator,
       },
     }]);
 
@@ -25,6 +39,7 @@ describe('#parseKey', () => {
       path: ['foo'],
       mapped: {
         foo: ['access', 'call', []],
+        ...iterator,
       },
     }]);
   });
@@ -38,6 +53,7 @@ describe('#parseKey', () => {
         foo: ['access'],
         bar: ['get'],
         baz: ['get'],
+        ...iterator,
       },
     }]);
 
@@ -49,6 +65,7 @@ describe('#parseKey', () => {
         foo: ['access'],
         bar: ['get'],
         baz: ['get'],
+        ...iterator,
       },
     }]);
   });
@@ -71,6 +88,7 @@ describe('#parseKey', () => {
           foo: ['access'],
           bar: ['get'],
           baz: ['get', 'call', [{ type: 'number', value: 1 }, { type: 'number', value: 2 }]],
+          ...iterator,
         },
       },
       {
@@ -82,6 +100,7 @@ describe('#parseKey', () => {
           baz: ['get'],
           baz$1: ['get'],
           boo: ['get'],
+          ...iterator,
         },
       },
     ]);
@@ -102,6 +121,7 @@ describe('#parseKey', () => {
           { value: 1, type: 'number' },
           { value: 2, type: 'number' },
         ]],
+        ...iterator,
       },
     }]);
   });
@@ -122,6 +142,7 @@ describe('#parseKey', () => {
           { value: 1, type: 'number' },
           { value: 2, type: 'number' },
         ]],
+        ...iterator,
       },
     }]);
 
@@ -147,6 +168,7 @@ describe('#parseKey', () => {
             { value: 1, type: 'number' },
             { value: 2, type: 'number' },
           ]],
+          ...iterator,
         },
       },
       {
@@ -156,13 +178,13 @@ describe('#parseKey', () => {
           { value: 10, type: 'number' },
           { value: 12, type: 'number' },
         ]],
-
         mapped: {
           baz: ['access'],
           bar: ['get', 'call', [
             { value: 10, type: 'number' },
             { value: 12, type: 'number' },
           ]],
+          ...iterator,
         },
       },
     ]);
@@ -180,6 +202,7 @@ describe('#parseKey', () => {
         path: ['contains'],
         mapped: {
           contains: ['access', 'call', []],
+          ...iterator,
         },
       },
       {
@@ -188,6 +211,7 @@ describe('#parseKey', () => {
         path: ['forEach'],
         mapped: {
           forEach: ['access', 'call', []],
+          ...iterator,
         },
       },
     ]);
@@ -208,6 +232,7 @@ describe('#parseKey', () => {
           { value: 1, type: 'number' },
           { value: 2, type: 'number' },
         ]],
+        ...iterator,
       },
     }]);
 
@@ -219,7 +244,8 @@ describe('#parseKey', () => {
       path: ['xD'],
       mapped: {
         xD: ['access', 'call', []],
-      }
+        ...iterator,
+      },
     }]);
   });
 
@@ -230,6 +256,7 @@ describe('#parseKey', () => {
       path: ['forEach'],
       mapped: {
         forEach: ['access', 'call', []],
+        ...iterator,
       },
     }]);
   });
@@ -243,6 +270,7 @@ describe('#parseKey', () => {
         easy: ['access'],
         utils: ['get'],
         isDate: ['get', 'call', [{ type: 'object', value: null }]],
+        ...iterator,
       },
     }]);
 
@@ -254,6 +282,7 @@ describe('#parseKey', () => {
         easy: ['access'],
         utils: ['get'],
         isDate: ['get', 'call', [{ type: 'object', value: null }]],
+        ...iterator,
       },
     }]);
 
@@ -267,6 +296,7 @@ describe('#parseKey', () => {
         easy: ['access'],
         utils: ['get'],
         isDate: ['get', 'call', [{ type: 'object', value: null }]],
+        ...iterator,
       },
     }]);
   });
@@ -279,7 +309,8 @@ describe('#parseKey', () => {
         path: ['foo', 'bar'],
         mapped: {
           foo: ['access'],
-          bar: ['get', 'call', []]
+          bar: ['get', 'call', []],
+          ...iterator,
         },
       },
       {
@@ -288,6 +319,7 @@ describe('#parseKey', () => {
         path: ['xyz'],
         mapped: {
           xyz: ['access', 'call', []],
+          ...iterator,
         },
       }]);
 
@@ -299,6 +331,7 @@ describe('#parseKey', () => {
         mapped: {
           foo: ['access'],
           bar: ['get', 'call', []],
+          ...iterator,
         },
       },
       {
@@ -307,15 +340,28 @@ describe('#parseKey', () => {
         path: ['xyz'],
         mapped: {
           xyz: ['access', 'call', []],
+          ...iterator,
         },
       }]);
 
     expect(() => parseKey('foo.bar[Symbol.hasPrimitive]()')).not.toThrow();
   });
 
-
   test('raises SyntaxError', () => {
     expect(() => parseKey(';;;-/\\\\--;;;')).toThrow(SyntaxError);
+  });
+
+  test('mapped properties can be iterated', () => {
+    const { mapped } = parseKey('foo.foo.baz.boo.baz.bar')[0];
+    expect(Object.keys(mapped)).toEqual(['foo', 'foo$1', 'baz', 'boo', 'baz$1', 'bar']);
+    expect([...mapped]).toEqual([
+      ['foo', ['access']],
+      ['foo', ['get']],
+      ['baz', ['get']],
+      ['boo', ['get']],
+      ['baz', ['get']],
+      ['bar', ['get']],
+    ]);
   });
 });
 
@@ -329,6 +375,7 @@ describe('#parseKeyAsync', () => {
       mapped: {
         obj: ['access'],
         foo: ['get', 'call', []],
+        ...iterator,
       },
     }]);
 
@@ -340,6 +387,7 @@ describe('#parseKeyAsync', () => {
       mapped: {
         obj: ['access'],
         foo: ['get', 'call', []],
+        ...iterator,
       },
     }]);
   });
