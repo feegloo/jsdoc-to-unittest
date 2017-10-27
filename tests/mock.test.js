@@ -84,6 +84,15 @@ describe('#mock', () => {
     }, func => eval(func))).toBe(13);
   });
 
+  test('mocks chain partially', () => {
+    expect(mock(() => obj.foo.a + obj.foo.b, {
+      'obj.foo': {
+        a: 1,
+        b: 2,
+      },
+    }, func => eval(func))).toBe(3);
+  });
+
   test('mocks async functions', async () => {
     expect(await mock.async(async () => obj.easy().then(value => value * 2), {
       'obj.easy()': () => Promise.resolve(20),
@@ -119,7 +128,7 @@ describe('#mock', () => {
     expect(obj.test).toBe(2);
   });
 
-  test('follows call execution', () => {
+  test('proper code flow execution', () => {
     function contains() {
       return obj.abc;
     }
@@ -154,13 +163,18 @@ describe('#mock.async', () => {
   });
 
   test('multiline example', async () => {
-    expect(await mock.async(`frosmo.site.utils.window('foo.bar')
+    global.console = await import('mocks/console');
+    global.console = global.console.default;
+    console.log(console.clearLog)
+    console.clearLog();
+    expect(await mock.async(`const promise = frosmo.site.utils.window('foo.bar')
       .then(function(result) {
         console.log(result);    // 123
       });
       var foo = {bar : 123 }
      `, {
         'frosmo.site.utils.window(1)': () => Promise.resolve(123),
-      }, func => eval(func))).toBeUndefined();
+      }, func => eval(func))).toHaveLog([123]);
+    console.restore();
   });
 });

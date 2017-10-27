@@ -14,12 +14,18 @@ describe('#parseKey', () => {
       calls: 0,
       access: ['access'],
       path: ['foo'],
+      mapped: {
+        foo: ['access'],
+      },
     }]);
 
     expect(parseKey('foo()')).toEqual([{
       calls: 1,
       access: ['access', 'call', []],
       path: ['foo'],
+      mapped: {
+        foo: ['access', 'call', []],
+      },
     }]);
   });
 
@@ -28,13 +34,31 @@ describe('#parseKey', () => {
       calls: 0,
       access: ['access', 'get', 'get'],
       path: ['foo', 'bar', 'baz'],
+      mapped: {
+        foo: ['access'],
+        bar: ['get'],
+        baz: ['get'],
+      },
     }]);
 
     expect(parseKey('foo[\'bar\'].baz')).toEqual([{
       calls: 0,
       access: ['access', 'get', 'get'],
       path: ['foo', 'bar', 'baz'],
+      mapped: {
+        foo: ['access'],
+        bar: ['get'],
+        baz: ['get'],
+      },
     }]);
+  });
+
+  test('returns #mapped in correct order', () => {
+    expect(Object.keys(parseKey('foo[\'bar\'].baz')[0].mapped)).toEqual(['foo', 'bar', 'baz']);
+  });
+
+  test('mapped doesn\'t contain the same keys', () => {
+    expect(Object.keys(parseKey('foo.baz.baz')[0].mapped)).toEqual(['foo', 'baz', 'baz$1']);
   });
 
   test('getters and calls', () => {
@@ -43,11 +67,22 @@ describe('#parseKey', () => {
         calls: 1,
         access: ['access', 'get', 'get', 'call', [{ type: 'number', value: 1 }, { type: 'number', value: 2 }]],
         path: ['foo', 'bar', 'baz'],
+        mapped: {
+          foo: ['access'],
+          bar: ['get'],
+          baz: ['get', 'call', [{ type: 'number', value: 1 }, { type: 'number', value: 2 }]],
+        },
       },
       {
         calls: 0,
         access: ['access', 'get', 'get', 'get'],
         path: ['foo', 'baz', 'baz', 'boo'],
+        mapped: {
+          foo: ['access'],
+          baz: ['get'],
+          baz$1: ['get'],
+          boo: ['get'],
+        },
       },
     ]);
   });
@@ -60,6 +95,14 @@ describe('#parseKey', () => {
         { value: 2, type: 'number' },
       ]],
       path: ['foo', 'bar', 'baz'],
+      mapped: {
+        foo: ['access'],
+        bar: ['get'],
+        baz: ['get', 'call', [
+          { value: 1, type: 'number' },
+          { value: 2, type: 'number' },
+        ]],
+      },
     }]);
   });
 
@@ -71,6 +114,15 @@ describe('#parseKey', () => {
         { value: 1, type: 'number' },
         { value: 2, type: 'number' },
       ]],
+      mapped: {
+        foo: ['access'],
+        0: ['get'],
+        bar: ['get', 'call', []],
+        baz: ['get', 'call', [
+          { value: 1, type: 'number' },
+          { value: 2, type: 'number' },
+        ]],
+      },
     }]);
 
     expect(parseKey('foo[0].bar(10, 12).baz(1, 2);baz.bar(10, 12);')).toEqual([
@@ -84,6 +136,18 @@ describe('#parseKey', () => {
           { value: 1, type: 'number' },
           { value: 2, type: 'number' },
         ]],
+        mapped: {
+          foo: ['access'],
+          0: ['get'],
+          bar: ['get', 'call',  [
+            { value: 10, type: 'number' },
+            { value: 12, type: 'number' },
+          ]],
+          baz: ['get', 'call', [
+            { value: 1, type: 'number' },
+            { value: 2, type: 'number' },
+          ]],
+        },
       },
       {
         calls: 1,
@@ -92,6 +156,14 @@ describe('#parseKey', () => {
           { value: 10, type: 'number' },
           { value: 12, type: 'number' },
         ]],
+
+        mapped: {
+          baz: ['access'],
+          bar: ['get', 'call', [
+            { value: 10, type: 'number' },
+            { value: 12, type: 'number' },
+          ]],
+        },
       },
     ]);
   });
@@ -102,8 +174,22 @@ describe('#parseKey', () => {
     }
 
     expect(parseKey('contains()', func => eval(func), true)).toEqual([
-      { access: ['access', 'call', []], calls: 1, path: ['contains'] },
-      { access: ['access', 'call', []], calls: 1, path: ['forEach'] },
+      {
+        access: ['access', 'call', []],
+        calls: 1,
+        path: ['contains'],
+        mapped: {
+          contains: ['access', 'call', []],
+        },
+      },
+      {
+        access: ['access', 'call', []],
+        calls: 1,
+        path: ['forEach'],
+        mapped: {
+          forEach: ['access', 'call', []],
+        },
+      },
     ]);
   });
 
@@ -115,6 +201,14 @@ describe('#parseKey', () => {
         { value: 2, type: 'number' },
       ]],
       path: ['foo', 'bar', 'baz'],
+      mapped: {
+        foo: ['access'],
+        bar: ['get'],
+        baz: ['get', 'call', [
+          { value: 1, type: 'number' },
+          { value: 2, type: 'number' },
+        ]],
+      },
     }]);
 
     expect(parseKey(`{
@@ -123,6 +217,9 @@ describe('#parseKey', () => {
       calls: 1,
       access: ['access', 'call', []],
       path: ['xD'],
+      mapped: {
+        xD: ['access', 'call', []],
+      }
     }]);
   });
 
@@ -131,6 +228,9 @@ describe('#parseKey', () => {
       calls: 1,
       access: ['access', 'call', []],
       path: ['forEach'],
+      mapped: {
+        forEach: ['access', 'call', []],
+      },
     }]);
   });
 
@@ -139,12 +239,22 @@ describe('#parseKey', () => {
       calls: 1,
       access: ['access', 'get', 'get', 'call', [{ type: 'object', value: null }]],
       path: ['easy', 'utils', 'isDate'],
+      mapped: {
+        easy: ['access'],
+        utils: ['get'],
+        isDate: ['get', 'call', [{ type: 'object', value: null }]],
+      },
     }]);
 
     expect(parseKey('easy.utils.isDate(easy); // true')).toEqual([{
       calls: 1,
       access: ['access', 'get', 'get', 'call', [{ type: 'object', value: null }]],
       path: ['easy', 'utils', 'isDate'],
+      mapped: {
+        easy: ['access'],
+        utils: ['get'],
+        isDate: ['get', 'call', [{ type: 'object', value: null }]],
+      },
     }]);
 
     expect(parseKey('easy.utils.isDate(new Date(new Date())); // true')).toEqual([{
@@ -153,6 +263,11 @@ describe('#parseKey', () => {
         { type: 'object', value: null },
       ]],
       path: ['easy', 'utils', 'isDate'],
+      mapped: {
+        easy: ['access'],
+        utils: ['get'],
+        isDate: ['get', 'call', [{ type: 'object', value: null }]],
+      },
     }]);
   });
 
@@ -162,11 +277,18 @@ describe('#parseKey', () => {
         access: ['access', 'get', 'call', []],
         calls: 1,
         path: ['foo', 'bar'],
+        mapped: {
+          foo: ['access'],
+          bar: ['get', 'call', []]
+        },
       },
       {
         access: ['access', 'call', []],
         calls: 1,
         path: ['xyz'],
+        mapped: {
+          xyz: ['access', 'call', []],
+        },
       }]);
 
     expect(parseKey('foo.bar() + +xyz()')).toEqual([
@@ -174,11 +296,18 @@ describe('#parseKey', () => {
         access: ['access', 'get', 'call', []],
         calls: 1,
         path: ['foo', 'bar'],
+        mapped: {
+          foo: ['access'],
+          bar: ['get', 'call', []],
+        },
       },
       {
         access: ['access', 'call', []],
         calls: 1,
         path: ['xyz'],
+        mapped: {
+          xyz: ['access', 'call', []],
+        },
       }]);
 
     expect(() => parseKey('foo.bar[Symbol.hasPrimitive]()')).not.toThrow();
@@ -197,6 +326,10 @@ describe('#parseKeyAsync', () => {
       access: ['access', 'get', 'call', []],
       path: ['obj', 'foo'],
       special: 'Promise',
+      mapped: {
+        obj: ['access'],
+        foo: ['get', 'call', []],
+      },
     }]);
 
     expect(await parseKeyAsync('obj.foo().then(console.log).catch(console.log)')).toEqual([{
@@ -204,17 +337,23 @@ describe('#parseKeyAsync', () => {
       access: ['access', 'get', 'call', []],
       path: ['obj', 'foo'],
       special: 'Promise',
+      mapped: {
+        obj: ['access'],
+        foo: ['get', 'call', []],
+      },
     }]);
   });
 });
 
 describe('#listAccesses', () => {
   test('lists accesses', () => {
+    expect(listAccesses('frosmo', ['frosmo'])).toEqual([['access']]);
+    expect(listAccesses('frosmo()', ['frosmo'])).toEqual([['access', 'call', []]]);
     expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get']]);
     expect(listAccesses('frosmo.xyz["aaa"]', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get']]);
     expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz["aaa"]'])).toEqual([['access', 'get', 'get']]);
     expect(listAccesses('frosmo.xyz.aaa()', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get', 'call', []]]);
-    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa']))
+    expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa()']))
       .toEqual([['access', 'get', 'get', 'call', [
         { type: 'boolean', value: true },
         { type: 'boolean', value: false },
@@ -263,6 +402,18 @@ describe('#listAccesses', () => {
         { type: 'boolean', value: false },
         { type: 'number', value: 2 },
       ]],
+    ]);
+  });
+
+  test('filters partial chains', () => {
+    expect(listAccesses('foo.bar.a;foo.bar.c.x', ['foo.bar'])).toEqual([
+      ['access', 'get', 'get'],
+      ['access', 'get', 'get', 'get'],
+    ]);
+
+    expect(listAccesses('foo.bar.a;foo.bar.c.x', ['foo.bar', 'foo.bar.a'])).toEqual([
+      ['access', 'get', 'get'],
+      ['access', 'get', 'get', 'get'],
     ]);
   });
 

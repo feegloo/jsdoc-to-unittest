@@ -1,27 +1,42 @@
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import { argv } from 'yargs';
+import yargs from 'yargs';
 import print from './creator';
+
+yargs
+  .usage('Usage: $0 <command> [options]')
+  .demand('input')
+  .default('target', 'jest')
+  .default('inline', false)
+  .boolean('inline');
+
+const { argv } = yargs;
 
 const readFileAsync = util.promisify(fs.readFile);
 
 const basePath = path.resolve(__dirname, '..');
 
 const fields = [
-  'inline'
+  'inline',
+  'target',
 ];
 
-async function getConfig(input, output) {
+async function getConfig(input, output = '') {
   let configPath = '';
   const config = { // default values
     export: true,
+    target: 'jest',
   };
-  if (argv.config) {
-    configPath = path.resolve(basePath, argv.config, '..');
-    Object.assign(config, JSON.parse(
-      await readFileAsync(path.resolve(basePath, argv.config), 'utf-8')
-    ));
+  if (typeof argv.config === 'string') {
+    try {
+      JSON.parse(argv.config);
+    } catch (ex) {
+      configPath = path.resolve(basePath, argv.config, '..');
+      Object.assign(config, JSON.parse(
+        await readFileAsync(path.resolve(basePath, argv.config), 'utf-8'),
+      ));
+    }
   }
 
   fields.forEach((field) => {
@@ -35,21 +50,20 @@ async function getConfig(input, output) {
     output,
   });
 
-  if (argv.header) {
-    config.header = await readFileAsync(path.resolve(basePath, config.header), 'utf-8');
-  } else if (config.header) {
-    config.header = await readFileAsync(path.resolve(configPath, config.header), 'utf-8');
-  }
-  if (argv.footer) {
-    config.footer = await readFileAsync(path.resolve(basePath, config.footer), 'utf-8');
-  } else if (config.footer) {
-    config.footer = await readFileAsync(path.resolve(configPath, config.footer), 'utf-8');
-  }
+  await Promise.all(['header', 'footer', 'intro', 'outro']
+    .filter(key => key in argv || key in config)
+    .map(async (key) => {
+      config[key] = await readFileAsync(
+        path.resolve(argv[key] ? basePath : configPath, config[key]),
+        'utf-8',
+      );
+    }),
+  );
 
   return config;
 }
 
-export default async (input = argv._[0], output = argv._[1]) => {
+export default async (input = argv.input, output = argv.output) => {
   const config = await getConfig(input, output);
   return print({
     ...config,

@@ -86,4 +86,15 @@ describe('Parser', () => {
       await readFileAsync(path.resolve(__dirname, 'fixtures/async.js'), 'utf-8'),
     )).toMatchSnapshot();
   });
+
+  test('numeral-conjugation.js is parsed correctly', async () => {
+    const { exports, imports, samples } = await parse(
+      await readFileAsync(path.resolve(__dirname, 'fixtures/numeral-conjugation.js'), 'utf-8'),
+    );
+
+    expect(exports).toHaveLength(1);
+    expect(imports).toHaveLength(1);
+    expect(samples).toHaveLength(1);
+    expect(samples[0].examples).toMatchSnapshot();
+  });
 });

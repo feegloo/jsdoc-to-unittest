@@ -4,20 +4,41 @@ const fs = require('fs');
 const childProcess = require('child_process');
 
 const execFile = util.promisify(childProcess.execFile);
+const writeFileAsync = util.promisify(fs.writeFile);
+const unlinkAsync = util.promisify(fs.unlink);
 
-const babelNode = path.resolve(__dirname, '../node_modules/.bin/babel-node');
+const basePath = path.resolve(__dirname, '..');
 
-exports.spawn = async (filename, ...args) => {
-  const { stdout } = await execFile(babelNode, [
-    path.resolve(__dirname, '../index.js'),
-    path.resolve(__dirname, '../tests/fixtures/', filename),
-    ...args,
-  ], {
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
+const spawn = async function (command, ...args) {
+  const { stdout, stderr } = await execFile(
+    path.resolve(basePath, `node_modules/.bin/${command}`), args, {
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        ...(this || {}),
+      },
     },
-  });
+  );
+
+  if (stderr) {
+    throw stderr;
+  }
 
   return stdout;
+};
+
+exports.spawn = spawn;
+
+exports.spawnJest = async (...args) => {
+  const filePath = path.resolve(basePath, '.cache/', `trash-${Math.random().toString(36).slice(2)}.test.js`);
+  await writeFileAsync(filePath, await spawn('babel-node', 'index.js', ...args));
+  let result = null;
+  try {
+    result = await spawn.call({ NODE_ENV: 'test' }, 'jest', `--config=${path.resolve(basePath, 'tests/index/jest.json')}`, filePath);
+  } catch (ex) {
+    result = ex;
+  }
+
+  await unlinkAsync(filePath);
+  return result;
 };

@@ -1,3 +1,4 @@
+import * as babel from 'babel-core';
 import { listAccesses, parseKey, fallToGlobal, parseKeyAsync, listAccessesAsync } from './analyzer';
 import { AsyncFunction, isFunction } from './utils';
 
@@ -10,7 +11,9 @@ function mocker(cur, { async, fullPath, accesses, accessPath, value, ...rest }) 
         set(_value) {
           const toCompare = [..._value.access].join('');
 
-          const index = accesses.findIndex(item => item.join('') === toCompare);
+          const index = accesses.findIndex(item => {
+            return item.slice(0, toCompare.length).join('') === toCompare
+          });
           if (index === -1) {
             return false;
           }
@@ -43,14 +46,20 @@ function mocker(cur, { async, fullPath, accesses, accessPath, value, ...rest }) 
 }
 
 function createFunction(Constructor, func, obj, _eval) {
-  let end = '';
-  if (typeof func === 'function') {
-    end += '(s)';
+  let code = String(func).replace(/`/g, '\\`');
+  if (typeof func !== 'function') {
+    func = String(`() => {
+      ${code};
+    }`);
   }
+
+  ({ code } = babel.transform(func, {
+    plugins: ['implicit-return'],
+  }));
 
   return Constructor(
     's',
-    `return eval(\`with(s){ ${func.toString().replace(/`/g, '\\`')} }\`)${end}`,
+    `with(s){ return (${code.replace(/;$/, '')})() }`,
   ).call(null, fallToGlobal(obj, _eval));
 }
 

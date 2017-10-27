@@ -76,6 +76,23 @@ easy.utils.each([1, 2, 3], function (value, index) {
 ]
 `;
 
+exports[`Parser numeral-conjugation.js is parsed correctly 1`] = `
+Array [
+  Object {
+    "code": "numeralConjugation(3, ['osób', 'osoba', 'osoby']); // '3 osoby'",
+    "name": "numeralConjugation",
+    "result": "\\"3 osoby\\"",
+    "type": "value",
+  },
+  Object {
+    "code": "numeralConjugation(11, ['osób', 'osoba', 'osoby']); // '11 osób'",
+    "name": "numeralConjugation",
+    "result": "\\"11 osób\\"",
+    "type": "value",
+  },
+]
+`;
+
 exports[`Parser supports async 1`] = `
 Object {
   "exports": Array [

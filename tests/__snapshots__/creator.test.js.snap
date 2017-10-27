@@ -1,12 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Creator async.js 1`] = `
-"export function getFromURL(str) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function getFromURL(str) {
   return fetch(str);
 }
 export default { getFromURL };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('getFromURL', () => {
@@ -24,19 +26,17 @@ describe('getFromURL', () => {
 "
 `;
 
-exports[`Creator empty 1`] = `
-"/* global mock */
-// Valid tests: 0%
-"
-`;
+exports[`Creator empty 1`] = `""`;
 
 exports[`Creator handles invalid examples 1`] = `
-"export function mayContain(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function mayContain(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
 export default { mayContain };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('mayContain', () => {
@@ -48,12 +48,14 @@ describe('mayContain', () => {
 `;
 
 exports[`Creator invalid syntax 1`] = `
-"export function mayContain(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 0%
+export function mayContain(str1, str2) {
   return true;
 }
 export default { mayContain };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 0%
 
 describe('undefined', () => {
@@ -65,8 +67,49 @@ describe('undefined', () => {
 "
 `;
 
+exports[`Creator karma - target 1`] = `
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function numeralConjugation(value, numerals, skipValue) {
+  const t0 = value % 10;
+  const t1 = value % 100;
+  const vo = [];
+  if (skipValue !== true) {
+    vo.push(value);
+  }
+  if (value === 1 && numerals[1]) {
+    vo.push(numerals[1]);
+  } else if (
+    (value === 0 || (t0 >= 0 && t0 <= 1) || (t0 >= 5 && t0 <= 9) || (t1 > 10 && t1 < 20)) &&
+    numerals[0]
+  ) {
+    vo.push(numerals[0]);
+  } else if ((t1 < 10 || t1 > 20) && t0 >= 2 && t0 <= 4 && numerals[2]) {
+    vo.push(numerals[2]);
+  }
+  return vo.join(' ');
+}
+export default { numeralConjugation };
+
+/* global mock, evaluate */
+// Valid tests: 100.00%
+
+describe('numeralConjugation', () => {
+  it('example 1', () => {
+    expect(numeralConjugation(3, ['osób', 'osoba', 'osoby'])).toBe('3 osoby');
+  });
+
+  it('example 2', () => {
+    expect(numeralConjugation(11, ['osób', 'osoba', 'osoby'])).toBe('11 osób');
+  });
+});
+"
+`;
+
 exports[`Creator mocked-easy.js 1`] = `
-"export function contains(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function contains(str1, str2) {
   if (easy.utils.isString(str1)) {
     return str1 && str1.indexOf(str2) !== -1;
   }
@@ -74,7 +117,7 @@ exports[`Creator mocked-easy.js 1`] = `
 }
 export default { contains };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('contains', () => {
@@ -93,13 +136,54 @@ describe('contains', () => {
 "
 `;
 
+exports[`Creator numeral-conjugation.js matches snapshot 1`] = `
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function numeralConjugation(value, numerals, skipValue) {
+  const t0 = value % 10;
+  const t1 = value % 100;
+  const vo = [];
+  if (skipValue !== true) {
+    vo.push(value);
+  }
+  if (value === 1 && numerals[1]) {
+    vo.push(numerals[1]);
+  } else if (
+    (value === 0 || (t0 >= 0 && t0 <= 1) || (t0 >= 5 && t0 <= 9) || (t1 > 10 && t1 < 20)) &&
+    numerals[0]
+  ) {
+    vo.push(numerals[0]);
+  } else if ((t1 < 10 || t1 > 20) && t0 >= 2 && t0 <= 4 && numerals[2]) {
+    vo.push(numerals[2]);
+  }
+  return vo.join(' ');
+}
+export default { numeralConjugation };
+
+/* global mock, evaluate */
+// Valid tests: 100.00%
+
+describe('numeralConjugation', () => {
+  test('example 1', () => {
+    expect(numeralConjugation(3, ['osób', 'osoba', 'osoby'])).toBe('3 osoby');
+  });
+
+  test('example 2', () => {
+    expect(numeralConjugation(11, ['osób', 'osoba', 'osoby'])).toBe('11 osób');
+  });
+});
+"
+`;
+
 exports[`Creator prevents reference errors in toBe/toEqual 1`] = `
-"export function contains(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1 ? 'yes' : 'no';
 }
 export default { contains };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('contains', () => {
@@ -115,7 +199,9 @@ describe('contains', () => {
 `;
 
 exports[`Creator resolves async name 1`] = `
-"export function _window(property, options) {
+"/* global mock, evaluate */
+// Valid tests: 50.00%
+export function _window(property, options) {
   options = easy.utils.extend(
     {
       retryInterval: 250,
@@ -141,22 +227,18 @@ exports[`Creator resolves async name 1`] = `
 }
 export default { _window };
 
-/* global mock */
-// Valid tests: 100.00%
+/* global mock, evaluate */
+// Valid tests: 50.00%
 
 describe('window', () => {
   test('example 1', async () => {
-    expect(
-      await evaluate(
-        () => {
-          frosmo.site.utils.window('foo.bar').then((result) => {
-            console.log(result);
-          });
-          const foo = { bar: 123 };
-        },
-        func => eval(func),
-      ),
-    ).toBe(123);
+    throw new SyntaxError('missing ) after argument list');
+    /* expect(await mock.async(frosmo.site.utils.window('foo.bar')
+.then(function(result) {
+    console.log(result);    // 123
+});
+
+var foo = {bar : 123 };, func => eval(func)), {}, func => eval(func))).toBe(123); */
   });
 
   test('example 2', async () => {
@@ -170,40 +252,15 @@ describe('window', () => {
 "
 `;
 
-exports[`Creator writes to file 1`] = `
-Array [
-  "export function contains(str1, str2) {
-  return str1 && str1.indexOf(str2) !== -1;
-}
-export default { contains };
-",
-  "/* global mock */
-// Valid tests: 100.00%
-import __imports__, { contains } from './trash-arbb88scjoshu.exports.js';
-
-global.__imports__ = __imports__;
-Object.assign(global, __imports__);
-
-describe('contains', () => {
-  test('example 1', () => {
-    expect(contains('foo', 'fooo')).toBe(false);
-  });
-
-  test('example 2', () => {
-    expect(contains('hey', 'ey')).toBe(true);
-  });
-});
-",
-]
-`;
-
 exports[`Creator writes to stdout #2 1`] = `
-"export function mayContain(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function mayContain(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
 export default { mayContain };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('mayContain', () => {
@@ -215,12 +272,14 @@ describe('mayContain', () => {
 `;
 
 exports[`Creator writes to stdout #3 1`] = `
-"export function each(obj, iterator, context) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function each(obj, iterator, context) {
   _forEach(obj, iterator, context);
 }
 export default { each };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('each', () => {
@@ -286,12 +345,14 @@ describe('each', () => {
 `;
 
 exports[`Creator writes to stdout 1`] = `
-"export function contains(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
 export default { contains };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('contains', () => {

@@ -1,7 +1,7 @@
 {
   "target": "jest",
-  "header": "intro.js",
-  "footer": "outro.js",
+  "header": "header.js",
+  "footer": "footer.js",
   "inline": false,
   "globals": [
     "it",

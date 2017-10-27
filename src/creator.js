@@ -4,6 +4,7 @@ import prettify from './prettifier';
 import parse from './parser';
 import { wrap, validateSyntax, evaluate } from './utils';
 import { readFile, writeFile, toStdout } from './fs';
+import constants from './constants';
 
 const readFileAsync = util.promisify(fs.readFile);
 
@@ -16,6 +17,7 @@ class TestItem {
     result,
     imports,
     mocks,
+    target,
   }) {
     this.async = async;
     this.name = name;
@@ -23,6 +25,7 @@ class TestItem {
     this.type = type;
     this.result = result;
     this.imports = imports;
+    this.target = target;
     this.mocks = JSON.stringify(mocks);
     this.mockName = async ? 'mock.async' : 'mock';
     this.valid = false;
@@ -30,7 +33,7 @@ class TestItem {
   }
 
   printName(code) {
-    return `test('${this.name}', ${this.async ? 'async ' : ''}() => {
+    return `${this.target.method}('${this.name}', ${this.async ? 'async ' : ''}() => {
       ${code}
     })`;
   }
@@ -105,16 +108,17 @@ class Test {
     samples,
     imports,
     exports,
+    exportsFileName,
     async,
     globals = [],
     inline,
     header,
     footer,
     partials = [],
+    target,
   }) {
     this.filename = output;
-    const splitFilename = output.split('/');
-    this.exportsFileName = splitFilename[splitFilename.length - 1].replace(/\.js$/, '.exports.js');
+    this.exportsFileName = exportsFileName;
     this.stdout = stdout;
     this.samples = samples;
     this.imports = imports;
@@ -124,6 +128,7 @@ class Test {
     this.inline = inline;
     this.header = header;
     this.footer = footer;
+    this.target = target;
     this.globals = [...new Set(['mock', 'evaluate', ...globals])].join(', ');
     this.stats = {
       total: 0,
@@ -152,6 +157,8 @@ class Test {
     }
 
     return prettify([
+      this.stdout ? `/* global ${this.globals} */` : '',
+      this.stdout ? this.printStats() : '',
       this.exports.map(func => `export ${func}`).join('\n\n'),
       ';',
       `export default { ${this.imports.join(',\n')} };`,
@@ -164,6 +171,7 @@ class Test {
       const item = new TestItem({
         async: this.async,
         imports: this.imports,
+        target: this.target,
         ...args,
         name: `example ${i + 1}`,
       });
@@ -187,33 +195,52 @@ class Test {
     return `// Valid tests: ${((this.stats.valid / this.stats.total) * 100).toFixed(2)}%`;
   }
 
+  printGlobals() {
+    return `/* global ${this.globals} */`;
+  }
+
   async print() {
     const samples = this.samples.map(this.printSample, this).join('\n');
+    if (!samples.length) {
+      return '';
+    }
+
     return prettify([
-      `/* global ${this.globals} */`,
+      this.stdout && !this.inline ? await this.printExports() : '',
+      this.printGlobals(),
       this.printStats(),
       this.printImports(),
+      this.intro,
       this.header,
       ...(await this.printPartials()),
       samples,
       this.footer,
+      this.outro,
     ].join('\n'));
   }
 
   async write() {
-    let output = '';
-    try {
-      output = await this.print();
-    } catch (ex) {
-      output = JSON.stringify(ex.message.toString());
+    const output = await this.print();
+
+    if (!output.trim().length) {
+      return '';
+    }
+
+    if (this.check) {
+      const { ex } = validateSyntax(output);
+      if (ex !== null) {
+        throw ex;
+      }
     }
 
     if (this.stdout) {
-      return toStdout(await prettify(`${await this.printExports()}\n${output}`));
+      return toStdout(output);
     }
 
     return Promise.all([
-      this.exports.length ? writeFile(this.exportsFileName, await this.printExports()) : Promise.resolve(''),
+      this.exports.length ?
+        writeFile(this.exportsFileName, await this.printExports()) :
+        Promise.resolve(''),
       writeFile(this.filename, output),
     ]);
   }
@@ -225,6 +252,12 @@ export default async (args) => {
     extractFunctions: args.export,
   });
 
-  const test = new Test({ ...args, ...parsed });
+  const test = new Test({
+    ...args,
+    ...parsed,
+    exportsFileName: (args.output || '').replace(/\.js$/, '.exports.js'),
+    target: constants[args.target] || constants.jest,
+  });
+
   return test.write();
 };

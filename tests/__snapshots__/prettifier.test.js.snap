@@ -11,6 +11,19 @@ exports[`Prettifier accepts config 1`] = `
 "
 `;
 
+exports[`Prettifier doesn't prettify when prettify is equal to false 1`] = `
+"function abc() { var x = 2, y = 10;
+  if (true) {}
+  return (
+
+
+    2,
+    10
+  )
+}
+"
+`;
+
 exports[`Prettifier matches snapshot 1`] = `
 "function abc() {
   let x = 2,

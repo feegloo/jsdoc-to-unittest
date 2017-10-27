@@ -1,13 +1,16 @@
 {
   "name": "jsdoc-test-generator",
-  "version": "0.0.0",
-  "description": "",
+  "version": "1.0.0",
+  "description": "Generate jest/karma compliant test suite from any valid JS source containing jsdoc annotations.",
   "main": "index.js",
+  "bin": {
+    "docs-to-tests": "bin/generate"
+  },
   "scripts": {
     "test": "jest",
     "lint": "eslint --cache {src,tests}/**/*.js",
-    "build": "babel-node index.js",
-    "config": "babel-node index.js --config",
+    "install": "babel src/ -d dist",
+    "build": "bin/build-markdown",
     "clean": "bin/clean"
   },
   "keywords": [],
@@ -15,17 +18,21 @@
   "license": "ISC",
   "devDependencies": {
     "babel-eslint": "^8.0.1",
+    "babel-plugin-dynamic-import-node": "^1.1.0",
     "eslint": "^4.7.2",
     "eslint-config-airbnb-base": "^12.0.1",
     "eslint-import-resolver-jest": "^1.0.1",
     "eslint-import-resolver-node": "^0.3.1",
     "eslint-plugin-import": "^2.7.0",
     "eslint-plugin-jest": "^21.2.0",
-    "jest": "^21.2.1"
+    "jest": "^21.2.1",
+    "markdown-include": "^0.4.3"
   },
   "dependencies": {
     "acorn": "^5.1.2",
     "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-plugin-implicit-return": "^1.0.1",
     "babel-plugin-syntax-object-rest-spread": "^6.13.0",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
     "doctrine": "^2.0.0",
@@ -49,9 +56,6 @@
     },
     "collectCoverage": true,
     "cacheDirectory": ".cache/",
-    "modulePaths": [
-      "<rootDir>/src"
-    ],
     "moduleDirectories": [
       "node_modules"
     ],
@@ -66,7 +70,7 @@
       "trash-*.test.js"
     ],
     "moduleNameMapper": {
-      "src/(.*)": "<rootDir>/src/$1.js",
+      "^src/(.*)": "<rootDir>/src/$1.js",
       "mocks/(.*)": "<rootDir>/__mocks__/$1.js",
       "jest-helpers/(.*)": "<rootDir>/jest-helpers/$1.js"
     },

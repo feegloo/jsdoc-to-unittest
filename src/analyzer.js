@@ -11,8 +11,22 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
     path: [],
     access: [],
     calls: 0,
+    mapped: {
+      * [Symbol.iterator]() {
+        const mappedKeys = Object.keys(this);
+        while (mappedKeys.length) {
+          const key = mappedKeys.shift();
+          yield [
+            key.replace(/\$\d+/, ''),
+            this[key],
+          ];
+        }
+      },
+    },
   };
+  const seenKeys = new Map();
   let current = null;
+  let currentKey = '';
   let included = false;
   let excluded = false;
   const instance = new Proxy(function () {}, { // eslint-disable-line prefer-arrow-callback
@@ -25,7 +39,11 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
       current.calls += 1;
       const argsList = new Array(argumentsList.length).fill(feedback(undefined));
       current.access.push('call', argsList);
+      if (currentKey !== undefined && current.mapped[currentKey] !== undefined) {
+        current.mapped[currentKey].push('call', argsList);
+      }
       try {
+        // note: we lose (valuable?) feedback here due to missing toJSON() in some objects
         collectFeedback(JSON.parse(JSON.stringify(argumentsList))).forEach((item, i) => {
           argsList[i] = item;
         });
@@ -54,6 +72,7 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
       if (!Reflect.has(args, key)) {
         current = JSON.parse(JSON.stringify(obj));
         ret.push(current);
+        seenKeys.clear();
         included = false;
         excluded = false;
       } else {
@@ -64,8 +83,9 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
     get(target, key) {
       switch (key) {
         case Symbol.unscopables:
-          return undefined;
+          return void 0; // eslint-disable-line no-void
         case Symbol.toPrimitive:
+          // todo: move it outside the closure, no need to allocate this function over and over again...
           return function (hint) {
             target.apply(this, arguments); // eslint-disable-line prefer-rest-params
             switch (hint) {
@@ -78,7 +98,7 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
             }
           };
         case 'toJSON':
-          return () => null;
+          return () => null; // todo as above
         default:
           if (!excluded) {
             if (Object.keys(keys).includes(key)) {
@@ -86,12 +106,24 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
             }
 
             current.path.push(key);
+            currentKey = key;
+            let index = seenKeys.get(currentKey);
+            if (index) {
+              currentKey = `${currentKey}$${index}`;
+            } else {
+              index = 0;
+            }
+
             if (!included) {
               included = true;
+              current.mapped[currentKey] = ['access'];
               current.access.push('access');
             } else {
+              current.mapped[currentKey] = ['get'];
               current.access.push('get');
             }
+
+            seenKeys.set(currentKey, index + 1);
           }
       }
 
@@ -137,6 +169,10 @@ export async function parseKeyAsync(exp, _eval) {
       access.splice(1, 1);
     }
 
+    const mapped = { ...item.mapped };
+    delete mapped.then; // todo: remove ${index} as well
+    delete mapped.catch;
+
     const firstThenIndex = path.indexOf('then');
     path.splice(firstThenIndex, path.length);
     const mergedAccess = access.reduce((acc, cur) => {
@@ -164,6 +200,7 @@ export async function parseKeyAsync(exp, _eval) {
         return acc;
       }, 0),
       path,
+      mapped,
     };
   });
 }
@@ -213,9 +250,9 @@ export function fallToGlobal(target, _eval, oldKey = '') {
         return mappedArgs.get(target) || [];
       }
 
-      const _scope = privateScope.get(target);
-      if (key in _scope) {
-        return _scope[key];
+      const scope = privateScope.get(target);
+      if (key in scope) {
+        return scope[key];
       }
 
       if (Reflect.has(target, key)) {
@@ -248,11 +285,33 @@ export function fallToGlobal(target, _eval, oldKey = '') {
 function filterAccesses(parsed, filter) {
   if (filter.length) {
     const paths = filter.reduce((acc, path) => {
-      acc.push(...getPath(path).map(item => item.join('.')));
+      acc.push(...parseKey(path));
       return acc;
     }, []);
 
-    parsed = parsed.filter(({ path }) => paths.includes(path.join('.')));
+    parsed = parsed.map((obj) => {
+      const { mapped } = obj;
+      const keyedMapped = Object.keys(mapped);
+      let max = -1;
+      let foundObj;
+      paths.forEach(({ mapped: filterMapped }) => {
+        Object.keys(filterMapped).every((key, i) => {
+          if (key === keyedMapped[i]) {
+            if (i > max) {
+              max = i;
+              foundObj = obj;
+            }
+            return true;
+          }
+
+
+          return false;
+        });
+      });
+
+
+      return foundObj;
+    }).filter(item => item);
   }
 
   return parsed.reduce((acc, { access }) => [...acc, access], []);

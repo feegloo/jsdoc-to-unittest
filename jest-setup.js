@@ -1,4 +1,5 @@
 import expect from 'expect';
+import matchers from 'expect/build/matchers';
 import mock from 'src/mock';
 import evaluate from 'src/evaluate';
 
@@ -8,6 +9,10 @@ global.mock = mock;
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
 expect.extend({
+  toHaveLog(received, expected) {
+    return matchers.toEqual(console.getLog(), expected);
+  },
+
   toBeOneInstanceOf(objs, instances) {
     let canBeAny = false;
     const lowerCased = instances.map((instance) => {

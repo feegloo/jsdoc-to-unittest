@@ -1,3 +1,4 @@
 #!/bin/sh
 rm ./tests/index/trash-*.test.js 2> /dev/null
+rm -rd .cache 2> /dev/null
 true

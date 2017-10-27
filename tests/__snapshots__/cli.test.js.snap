@@ -1,13 +1,15 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`#cli array-complement.js matches snapshot 1`] = `
-"export function arrayComplement(array) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function arrayComplement(array) {
   const indexes = Array.prototype.slice.call(arguments, 1);
   return easy.utils.filter(array, (value, arrIndex) => !easy.utils.inArray(indexes, arrIndex));
 }
 export default { arrayComplement };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('arrayComplement', () => {
@@ -39,12 +41,14 @@ describe('arrayComplement', () => {
 `;
 
 exports[`#cli creates async test 1`] = `
-"export function getFromURL(str) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function getFromURL(str) {
   return fetch(str);
 }
 export default { getFromURL };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('getFromURL', () => {
@@ -63,12 +67,14 @@ describe('getFromURL', () => {
 `;
 
 exports[`#cli creates test 1`] = `
-"export function contains(str1, str2) {
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function contains(str1, str2) {
   return str1 && str1.indexOf(str2) !== -1;
 }
 export default { contains };
 
-/* global mock */
+/* global mock, evaluate */
 // Valid tests: 100.00%
 
 describe('contains', () => {
