@@ -98,7 +98,7 @@ mock.async = async function (func, mocks, _eval) { // fixme: copy/paste, merge i
   const info = await parseKeyAsync(src, _eval, { Types });
   const mappedMocks = {};
   await Promise.all(Object.entries(mocks).map(async ([key, value]) => {
-    const [{ path, access }] = (await parseKeyAsync(mock, _eval, { Types }));
+    const [{ path, access }] = (await parseKeyAsync(key, _eval, { Types }));
     mappedMocks[path + JSON.stringify(access)] = value;
   }));
 

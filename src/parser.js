@@ -81,6 +81,28 @@ class Sample {
     );
   }
 
+  static parseResult({ value }) {
+    try {
+      value = Function(`return ${stripSemicolons(stripComments(value))}`)();
+      if (!isPrimitive(value)) {
+        return {
+          type: 'equal',
+          value: JSON.stringify(value),
+        };
+      }
+
+      return {
+        type: 'value',
+        value: JSON.stringify(value),
+      };
+    } catch (ex) {
+      return {
+        type: 'value',
+        value,
+      };
+    }
+  }
+
   async parseExample({ description: code }, i) {
     if (this.name === undefined) {
       try {
@@ -131,22 +153,35 @@ class Sample {
     }
 
     try {
-      acorn.parse(code, {
+      const ast = acorn.parse(code, {
         onComment: comments,
+        locations: true,
+      });
+
+      const consoleNode = walk.findNodeAt(ast, null, null, (nodeType, node) => {
+        if (nodeType === 'CallExpression') {
+          const { callee } = node;
+          return callee.type === 'MemberExpression' &&
+            callee.object.name === 'console' &&
+            callee.object.property !== '';
+        }
       });
 
       const lineComments = comments.filter(({ type }) => type === 'Line');
-
       if (lineComments.length) {
-        const { value: result } = lineComments[lineComments.length - 1];
-        data.result = result;
-        data.type = 'value';
-        if (typeof result === 'string') {
-          try {
-            const type = Function(`return ${stripSemicolons(stripComments(result))}`)(); // fixme: sandbox me, please.
-            data.type = isPrimitive(type) ? 'value' : 'equal';
-            data.result = JSON.stringify(type);
-          } catch (ex) {}
+        const { value, type } = Sample.parseResult(lineComments[lineComments.length - 1]);
+        data.type = type;
+        data.result = value;
+
+        if (consoleNode) {
+          const comment = lineComments.find(
+            ({ loc }) => consoleNode.node.loc.end.line === loc.start.line,
+          );
+
+          if (comment) {
+            data.type = 'console';
+            data.result = Sample.parseResult(comment).value;
+          }
         }
       }
     } catch (ex) {}
@@ -176,7 +211,6 @@ class Sample {
     return data;
   }
 }
-
 
 export default async (code, { extractFunctions = true } = {}) => {
   const funcs = {};

@@ -57,7 +57,10 @@ describe('Parser', () => {
 
     expect(samples[0].examples).toEqual([
       {
-        code: "contains('hey', 'ey');", name: 'contains', result: ['*', 'boolean'], type: 'instance',
+        code: "contains('hey', 'ey');",
+        name: 'contains',
+        result: ['*', 'boolean'],
+        type: 'instance',
       }],
     );
   });
@@ -102,5 +105,11 @@ describe('Parser', () => {
     expect(imports).toHaveLength(1);
     expect(samples).toHaveLength(1);
     expect(samples[0].examples).toMatchSnapshot();
+  });
+
+  test('async-name-resolve.js', async () => {
+    expect(await parse(
+      await readFileAsync(path.resolve(__dirname, 'fixtures/async-name-resolve.js'), 'utf-8'),
+    )).toMatchSnapshot();
   });
 });

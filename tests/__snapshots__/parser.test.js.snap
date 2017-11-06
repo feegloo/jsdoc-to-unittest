@@ -1,5 +1,137 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Parser async-name-resolve.js 1`] = `
+Object {
+  "exports": Array [
+    "function _window(property, options) {
+    options = easy.utils.extend({
+        retryInterval: 250,
+        endTime: 5000
+    }, options);
+    options.global = options.global || window;
+    return new easy.Promise(function (resolve, reject) {
+        easy.utils.waitFor(options.retryInterval, options.endTime, function () {
+            var result = site.utils.getValueByDotString(options.global, property);
+            if (result !== undefined) {
+                resolve(result);
+                return true;
+            }
+            return undefined;
+        }).catch(function (err) {
+            reject(err);
+        });
+    });
+}",
+  ],
+  "imports": Array [
+    "_window",
+  ],
+  "samples": Array [
+    Object {
+      "examples": Array [
+        Object {
+          "async": 1,
+          "code": "frosmo.site.utils.window('foo.bar')
+.then(function(result) {
+    console.log(result);    // 123
+});
+
+var foo = {bar : 123 };",
+          "mocks": Object {
+            "fetch('string')": [Function],
+          },
+          "name": "window",
+          "result": "123",
+          "type": "console",
+        },
+        Object {
+          "async": 1,
+          "code": "frosmo.site.utils.window('someUndefinedVariable')
+.catch(function(err) {
+    console.log(err);  // 'timeout'
+});",
+          "name": "window",
+          "result": "\\"timeout\\"",
+          "type": "console",
+        },
+      ],
+      "name": "window",
+      "tags": Object {
+        "async": Array [
+          Object {
+            "description": null,
+            "title": "async",
+          },
+        ],
+        "example": Array [
+          Object {
+            "description": "frosmo.site.utils.window('foo.bar')
+.then(function(result) {
+    console.log(result);    // 123
+});
+
+var foo = {bar : 123 };",
+            "title": "example",
+          },
+          Object {
+            "description": "frosmo.site.utils.window('someUndefinedVariable')
+.catch(function(err) {
+    console.log(err);  // 'timeout'
+});",
+            "title": "example",
+          },
+        ],
+        "memberof": Array [
+          Object {
+            "description": "site.utils",
+            "title": "memberof",
+          },
+        ],
+        "mock": Array [
+          Object {
+            "description": "{ 'fetch(\\\\'string\\\\')': () => Promise.reject('timeout') }",
+            "title": "mock",
+          },
+        ],
+        "name": Array [
+          Object {},
+        ],
+        "param": Array [
+          Object {
+            "description": "path like 'foo.bar.baz'",
+            "name": "property",
+            "title": "param",
+            "type": Object {
+              "name": "String",
+              "type": "NameExpression",
+            },
+          },
+          Object {
+            "description": "like {retryInterval: 500}",
+            "name": "options",
+            "title": "param",
+            "type": Object {
+              "name": "Object",
+              "type": "NameExpression",
+            },
+          },
+        ],
+        "returns": Array [
+          Object {
+            "description": null,
+            "title": "return",
+            "type": Object {
+              "name": "Promise",
+              "type": "NameExpression",
+            },
+          },
+        ],
+      },
+    },
+  ],
+}
+`;
+
 exports[`Parser detects async automatically 1`] = `
 Object {
   "exports": Array [
@@ -25,7 +157,7 @@ frosmo.site.products.getDevicePrice()
 });",
           "name": undefined,
           "result": "123",
-          "type": "value",
+          "type": "console",
         },
       ],
       "name": undefined,

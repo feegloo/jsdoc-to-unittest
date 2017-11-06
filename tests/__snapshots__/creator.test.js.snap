@@ -242,7 +242,7 @@ describe('window', () => {
         {},
         func => eval(func),
       ),
-    ).toBe(123);
+    ).toHaveLog([123]);
   });
 
   test('example 2', async () => {
@@ -250,7 +250,7 @@ describe('window', () => {
       await frosmo.site.utils.window('someUndefinedVariable').catch((err) => {
         console.log(err);
       }),
-    ).toBe('timeout');
+    ).toHaveLog(['timeout']);
   });
 });
 "

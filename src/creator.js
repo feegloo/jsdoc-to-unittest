@@ -41,6 +41,8 @@ class TestItem {
     }
 
     switch (this.type) {
+      case 'console':
+        return `toHaveLog([${this.result}])`;
       case 'instance':
         return `toBeOneInstanceOf(${JSON.stringify(this.result)}); // fixme: could be replaced with something more specific`;
       case 'value':
@@ -58,6 +60,7 @@ class TestItem {
         evaluate(this.renderEquality(), {
           toBe() {},
           toEqual() {},
+          toHaveLog() {},
           toBeOneInstanceOf() {},
         });
       } catch (ex) {
