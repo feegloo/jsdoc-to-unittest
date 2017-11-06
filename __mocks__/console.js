@@ -1,6 +1,4 @@
-const logged = [];
-
-export default new Proxy(console, {
+const mockedConsole = (logged = []) => new Proxy(console, {
   get(target, key) {
     if (key === 'clearLog') {
       return () => {
@@ -13,7 +11,7 @@ export default new Proxy(console, {
       return () => logged;
     }
 
-    if (key === 'restore') {
+    if (key === 'restore' || key === 'revoke') {
       return () => {
         global.console = target;
         return true;
@@ -31,3 +29,6 @@ export default new Proxy(console, {
     }
   },
 });
+
+export default mockedConsole();
+mockedConsole.revokable = mockedConsole;

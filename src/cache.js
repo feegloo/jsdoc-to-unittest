@@ -1,27 +1,37 @@
-import * as acorn from 'acorn';
+import { parse } from 'acorn';
 import { isPrimitive } from './utils';
 
-export default {
-  ast: new class extends WeakMap { // eslint-disable-line new-parens
-    get(target) {
-      if (isPrimitive(target)) {
-        return acorn.parse(target);
-      }
-
-      let ast = super.get(target); // eslint-disable-line no-shadow
-      if (ast !== undefined) {
-        return ast;
-      }
-
-      ast = acorn.parse(target);
-      this.set(target, ast);
-      return ast;
-    }
-  },
-
-  analyzer: new class extends Map { // eslint-disable-line new-parens
-    cache(key, result) {
-
-    }
-  },
+const acornDefaults = {
+  ecmaVersion: 8,
 };
+
+const generic = (cache = new WeakMap()) => (target, onMiss) => {
+  if (isPrimitive(target)) {
+    return onMiss(target);
+  }
+
+  if (cache.has(target)) {
+    return cache.get(target);
+  }
+
+  const value = onMiss(target);
+  cache.set(target, value);
+  return value;
+};
+
+export const acorn = (() => {
+  const cache = generic();
+  return {
+    parse(target, setup = {}) {
+      return cache(target, () => {
+        try {
+          return parse(target, { ...acornDefaults, ...setup });
+        } catch (ex) {
+          return parse(`(${target})`, { ...acornDefaults, ...setup });
+        }
+      });
+    },
+  };
+})();
+
+export default generic();

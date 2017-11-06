@@ -1,51 +1,9 @@
 import * as babel from 'babel-core';
-import { listAccesses, parseKey, fallToGlobal, parseKeyAsync, listAccessesAsync } from './analyzer';
+import { Types } from './feedback';
+import { parseKey, fallToGlobal, parseKeyAsync } from './analyzer';
 import { AsyncFunction, isFunction } from './utils';
 
-function mocker(cur, { async, fullPath, accesses, accessPath, value, ...rest }) {
-  fullPath.forEach((key, i, arr) => {
-    if (arr.length === i + 1) {
-      const values = new Array(accesses.length).fill({});
-      Reflect.defineProperty(cur, key, {
-        enumerable: true,
-        set(_value) {
-          const toCompare = [..._value.access].join('');
-
-          const index = accesses.findIndex(item => {
-            return item.slice(0, toCompare.length).join('') === toCompare
-          });
-          if (index === -1) {
-            return false;
-          }
-
-          values[index] = _value;
-          return true;
-        },
-        get() {
-          const { value: _value, calls } = values.shift();
-          if (calls && typeof _value !== 'function') {
-            if (async) {
-              return () => Promise.resolve(_value);
-            }
-
-            return () => _value;
-          }
-
-          return _value;
-        },
-      });
-
-      cur[key] = { access: accessPath, value, ...rest };
-    } else if (key in cur) {
-      cur = cur[key];
-    } else {
-      const ref = cur[key] = () => ref; // eslint-disable-line no-multi-assign
-      cur = cur[key];
-    }
-  });
-}
-
-function createFunction(Constructor, func, obj, _eval) {
+function createFunction(Constructor, func, obj, _eval) { // todo: move it to wrap
   let code = String(func).replace(/`/g, '\\`');
   if (typeof func !== 'function') {
     func = String(`() => {
@@ -63,48 +21,118 @@ function createFunction(Constructor, func, obj, _eval) {
   ).call(null, fallToGlobal(obj, _eval));
 }
 
-export default function mock(func, mocks, _eval) {
-  const obj = {};
-  const src = isFunction(func) ? `(${func})()` : String(func);
-
-  for (const [path, value] of Object.entries(mocks)) {
-    const [{ path: fullPath, access: accessPath, ...rest }] = parseKey(path, _eval);
-    const accesses = listAccesses.call(_eval, func, [path]);
-    if (!accesses.length) {
-      accesses.push(
-        ...listAccesses.call(_eval, src, [path]),
-      );
-    }
-
-    mocker(obj, {
-      async: false,
-      accesses,
-      accessPath,
-      value,
-      fullPath,
-      ...rest,
-    });
+function mocker(obj, mocks) {
+  if (!mocks.length) {
+    return obj;
   }
 
+  const { path, value } = mocks.shift();
+  let current = obj;
+  path.forEach((part, i, arr) => {
+    if (arr.length === i + 1) {
+      Reflect.defineProperty(current, part, {
+        enumerable: true,
+        configurable: true,
+        get() {
+          try {
+            mocker(obj, mocks);
+          } catch (ex) {}
+          return value;
+        },
+      });
+    } else {
+      const ref = current[part] = () => ref; // eslint-disable-line no-multi-assign
+      current = current[part];
+    }
+  });
+}
+
+export default function mock(func, mocks, _eval) {
+  const src = isFunction(func) ? `(${func})()` : String(func);
+
+  const info = parseKey(src, _eval, { Types });
+  const mappedMocks = {};
+  Object.entries(mocks).forEach(([key, value]) => {
+    const { path, access } = parseKey(key)[0];
+    mappedMocks[path + JSON.stringify(access)] = value;
+  });
+
+  const matched = info
+    .map(({ path, access, mapped }) => {
+      let found = mappedMocks[path + JSON.stringify(access)];
+
+      if (!found) {
+        const clonedMapped = [...mapped];
+        const met = {
+          path: [],
+          access: [],
+        };
+        while (clonedMapped.length) {
+          const map = clonedMapped.shift();
+
+          met.path.push(map[0]);
+          met.access.push(...map[1]);
+          found = mappedMocks[met.path + JSON.stringify(met.access)];
+          if (found) {
+            ({ path } = met);
+            break;
+          }
+        }
+      }
+
+      return ({
+        path,
+        value: found,
+      });
+    })
+    .filter(obj => obj.value !== undefined);
+
+  const obj = {};
+  mocker(obj, matched);
   return createFunction(Function, func, obj, _eval);
 }
 
-mock.async = async function (func, mocks, _eval) {
-  const obj = {};
+mock.async = async function (func, mocks, _eval) { // fixme: copy/paste, merge it
   const src = isFunction(func) ? `(${func})()` : String(func);
 
-  for (const [path, value] of Object.entries(mocks)) {
-    const accesses = await listAccessesAsync.call(_eval, src, [path]);
-    const [{ path: fullPath, access: accessPath, ...rest }] = await parseKeyAsync(path, _eval);
-    mocker(obj, {
-      async: true,
-      accesses,
-      accessPath,
-      value,
-      fullPath,
-      ...rest,
-    });
-  }
+  const info = await parseKeyAsync(src, _eval, { Types });
+  const mappedMocks = {};
+  await Promise.all(Object.entries(mocks).map(async ([key, value]) => {
+    const [{ path, access }] = (await parseKeyAsync(mock, _eval, { Types }));
+    mappedMocks[path + JSON.stringify(access)] = value;
+  }));
 
+  const matched = info
+    .map(({ path, access, mapped }) => {
+      let found = mappedMocks[path + JSON.stringify(access)];
+
+      if (!found) {
+        const clonedMapped = [...mapped];
+        const met = {
+          path: [],
+          access: [],
+        };
+        while (clonedMapped.length) {
+          const map = clonedMapped.shift();
+
+          met.path.push(map[0]);
+          met.access.push(...map[1]);
+          found = mappedMocks[met.path + JSON.stringify(met.access)];
+          if (found) {
+            ({ path } = met);
+            break;
+          }
+        }
+      }
+
+      return ({
+        path,
+        value: found,
+      });
+    })
+    .filter(obj => obj.value !== undefined);
+
+  const obj = {};
+  mocker(obj, matched);
   return createFunction(AsyncFunction, func, obj, _eval);
 };

@@ -3,7 +3,7 @@ const { spawn, spawnJest } = require('jest-helpers/spawn');
 describe('#index', () => {
   test('contains.js matches snapshot', async () => {
     expect(
-      await spawn('babel-node', 'src/cli.js', '--input=tests/fixtures/contains.js'),
+      await spawn('bin/generate', '--input=tests/fixtures/contains.js'),
     ).toMatchSnapshot();
   });
 
@@ -14,6 +14,12 @@ describe('#index', () => {
   });
 
   test('jest passes async test', async () => {
+    expect(
+      await spawnJest('--input=tests/fixtures/async.js'),
+    ).not.toBeInstanceOf(Error);
+  });
+
+  test('jest passes get-device-price.js', async () => {
     expect(
       await spawnJest('--input=tests/fixtures/async.js'),
     ).not.toBeInstanceOf(Error);

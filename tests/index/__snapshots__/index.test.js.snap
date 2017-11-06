@@ -1,3 +1,24 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`#index contains.js matches snapshot 1`] = `""`;
+exports[`#index contains.js matches snapshot 1`] = `
+"/* global mock, evaluate */
+// Valid tests: 100.00%
+export function contains(str1, str2) {
+  return str1 && str1.indexOf(str2) !== -1;
+}
+export default { contains };
+
+/* global mock, evaluate */
+// Valid tests: 100.00%
+
+describe('contains', () => {
+  test('example 1', () => {
+    expect(contains('foo', 'fooo')).toBe(false);
+  });
+
+  test('example 2', () => {
+    expect(contains('hey', 'ey')).toBe(true);
+  });
+});
+"
+`;

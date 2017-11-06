@@ -1,0 +1,156 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`#parseKey currying 1`] = `
+Array [
+  Object {
+    "access": Array [
+      "access",
+      "call",
+      Array [],
+      "call",
+      Array [
+        Array [
+          "boolean",
+          "generic",
+        ],
+      ],
+      "call",
+      Array [
+        Array [
+          "number",
+          "generic",
+        ],
+      ],
+      "call",
+      Array [
+        Array [
+          "Array",
+          "object",
+          "generic",
+        ],
+      ],
+    ],
+    "calls": 4,
+    "mapped": Object {
+      "x": Array [
+        "access",
+        "call",
+        Array [],
+        "call",
+        Array [
+          Array [
+            "boolean",
+            "generic",
+          ],
+        ],
+        "call",
+        Array [
+          Array [
+            "number",
+            "generic",
+          ],
+        ],
+        "call",
+        Array [
+          Array [
+            "Array",
+            "object",
+            "generic",
+          ],
+        ],
+      ],
+      Symbol(Symbol.iterator): [Function],
+    },
+    "path": Array [
+      "x",
+    ],
+  },
+]
+`;
+
+exports[`#parseKeyAsync analyzes async functions 1`] = `
+Array [
+  Object {
+    "access": Array [
+      "access",
+      "get",
+      "call",
+      Array [],
+    ],
+    "calls": 1,
+    "mapped": Object {
+      "call": Array [
+        "get",
+        "call",
+        Array [],
+      ],
+      "foo": Array [
+        "access",
+      ],
+      Symbol(Symbol.iterator): [Function],
+    },
+    "path": Array [
+      "foo",
+      "call",
+    ],
+  },
+  Object {
+    "access": Array [
+      "access",
+      "call",
+      Array [
+        Array [
+          "number",
+          "generic",
+        ],
+      ],
+      "get",
+    ],
+    "calls": 1,
+    "mapped": Object {
+      "someAsyncCall": Array [
+        "access",
+        "call",
+        Array [
+          Array [
+            "number",
+            "generic",
+          ],
+        ],
+      ],
+      "then": Array [
+        "get",
+      ],
+      Symbol(Symbol.iterator): [Function],
+    },
+    "path": Array [
+      "someAsyncCall",
+      "then",
+    ],
+  },
+  Object {
+    "access": Array [
+      "access",
+      "get",
+      "call",
+      Array [],
+    ],
+    "calls": 1,
+    "mapped": Object {
+      "await": Array [
+        "get",
+        "call",
+        Array [],
+      ],
+      "foo": Array [
+        "access",
+      ],
+      Symbol(Symbol.iterator): [Function],
+    },
+    "path": Array [
+      "foo",
+      "await",
+    ],
+  },
+]
+`;

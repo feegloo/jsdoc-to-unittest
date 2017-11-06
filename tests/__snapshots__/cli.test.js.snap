@@ -14,27 +14,17 @@ export default { arrayComplement };
 
 describe('arrayComplement', () => {
   test('example 1', () => {
-    expect(
-      evaluate(
-        () => {
-          const arr = [10, 5, 3];
-          frosmo.site.utils.arrayComplement(arr, 1);
-        },
-        func => eval(func),
-      ),
-    ).toEqual([10, 3]);
+    expect(() => {
+      const arr = [10, 5, 3];
+      return frosmo.site.utils.arrayComplement(arr, 1);
+    }).toEqual([10, 3]);
   });
 
   test('example 2', () => {
-    expect(
-      evaluate(
-        () => {
-          const arr = ['a', 'b', 'c'];
-          frosmo.site.utils.arrayComplement(arr, 0, 2);
-        },
-        func => eval(func),
-      ),
-    ).toEqual(['b']);
+    expect(() => {
+      const arr = ['a', 'b', 'c'];
+      return frosmo.site.utils.arrayComplement(arr, 0, 2);
+    }).toEqual(['b']);
   });
 });
 "
@@ -54,7 +44,7 @@ export default { getFromURL };
 describe('getFromURL', () => {
   test('example 1', async () => {
     expect(
-      await mock.async(
+      await mock(
         () =>
           getFromURL('https://mail.google.com/mail/').then(response => response.slice(5).trim()),
         { \\"fetch('string')\\": 'hello world  ' },

@@ -8,10 +8,10 @@ Object.assign(global, __imports__);
 describe('getFromURL', () => {
   test('example 1', async () => {
     expect(
-      await mock.async(
+      await mock(
         () =>
           getFromURL('https://mail.google.com/mail/').then(response => response.slice(5).trim()),
-        { "fetch('string')": 'hello world  ' },
+        { 'fetch(Types.String)': () => Promise.resolve('hello world  ') },
         func => eval(func),
       ),
     ).toBe('world');

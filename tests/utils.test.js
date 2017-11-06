@@ -49,14 +49,14 @@ describe('#wrap', () => {
     expect(exec('call()')).toBe('2');
     expect(exec('call();')).toBe('2');
     expect(exec('2 + +call();')).toBe(4);
-    expect(exec('call();call2();')).toBe(10);
-    expect(exec('call();\n\ncall2();')).toBe(10);
-    expect(exec('\n\n;call();call();\n\ncall2();')).toBe(10);
   });
 
   test('works for multiline-line code/functions', () => {
     expect(exec(func)()).toBe(14);
-    expect(exec(func2)).toBe('210');
+    expect(exec('call();call2();')()).toBe(10);
+    expect(exec('call();\n\ncall2();')()).toBe(10);
+    expect(exec('\n\n;call();call();\n\ncall2();')()).toBe(10);
+    expect(exec(func2)()).toBe('210');
     expect(exec(func3)).toBe('2');
   });
 
@@ -66,10 +66,10 @@ describe('#wrap', () => {
   });
 
   test('mock functions', () => {
-    expect(wrap.call({ call }, 'call', JSON.stringify({})))
-      .toBe('mock(call, {}, func => eval(func))');
-    expect(wrap.call({ call }, 'call', JSON.stringify({ call: 5 })))
-      .toBe('mock(call, {"call":5}, func => eval(func))');
+    expect(wrap.call({ call }, 'call()', JSON.stringify({})))
+      .toBe('mock(() => call(), {}, func => eval(func))');
+    expect(wrap.call({ call }, 'call()', JSON.stringify({ call: 5 })))
+      .toBe('mock(() => call(), {"call":5}, func => eval(func))');
   });
 
   test('clever wrapping', () => {
@@ -235,7 +235,7 @@ describe('#getFunctionBody', () => {
       getFunctionBody(`() => {
           const arr = [10, 5, 3];
           arr[2];
-      }`)
+      }`);
     }).not.toThrow();
   });
 
@@ -255,13 +255,25 @@ describe('#getFunctionBody', () => {
 
   test('async arrow functions', () => {
     const a = async () => {
+      2 + 2;
+    };
 
-    }
-  })
+    expect(getFunctionBody(a)).toBe('{\n    2 + 2;\n}');
+  });
 
   test('generators', () => {
+    const a = function* () {
+      yield 10;
+    };
+
+    expect(getFunctionBody(a)).toBe('{\n    yield 10;\n}');
   });
-  // test('iife')
+
+  test('iife', () => {
+    expect(getFunctionBody((function () {
+      2;
+    }))).toBe('{\n    2;\n}');
+  });
 });
 
 describe('#getFunctionParams', () => {

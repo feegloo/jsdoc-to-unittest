@@ -1,12 +1,9 @@
-import { evaluate, evaluateAsync, getFunctionBody, getFunctionParams } from './utils';
-import feedback from './feedback';
+import { evaluate, evaluateAsync, getFunctionBody, getFunctionParams, isPrimitive } from './utils';
+import feedback, { Types } from './feedback';
 import joinPath from './path';
+import mockedConsole from '../__mocks__/console';
 
-function collectFeedback(argumentsList) {
-  return argumentsList.map(feedback);
-}
-
-function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
+function intercept(ret, _eval, args = {}, _async = false) {
   const obj = {
     path: [],
     access: [],
@@ -26,17 +23,16 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
       }
 
       current.calls += 1;
-      const argsList = new Array(argumentsList.length).fill(feedback(undefined));
-      current.access.push('call', argsList);
-      if (currentKey !== undefined && current.mapped[currentKey] !== undefined) {
-        current.mapped[currentKey].push('call', argsList);
+      const argsList = new Array(argumentsList.length);
+      for (let i = 0; i < argumentsList.length; i += 1) {
+        argsList[i] = feedback(argumentsList[i]);
       }
-      try {
-        // note: we lose (valuable?) feedback here due to missing toJSON() in some objects
-        collectFeedback(JSON.parse(JSON.stringify(argumentsList))).forEach((item, i) => {
-          argsList[i] = item;
-        });
-      } catch (ex) {}
+
+      const intercepted = ['call', argsList];
+      current.access.push(...intercepted);
+      if (currentKey !== undefined && current.mapped[currentKey] !== undefined) {
+        current.mapped[currentKey].push(...intercepted);
+      }
 
       try {
         const ref = _eval(joinPath(current.path));
@@ -45,9 +41,10 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
           getFunctionParams(ref).forEach((name, i) => {
             parsedArgs[name] = argumentsList[i];
           });
-          ret.push(...parseKey(getFunctionBody(ref), _eval, { args: parsedArgs }));
+          ret.push(...parseKey(getFunctionBody(ref), _eval, parsedArgs));
         }
       } catch (ex) {}
+
       return instance;
     },
     construct(target, argumentsList) {
@@ -104,11 +101,11 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
         case 'toJSON':
           return () => null; // todo as above
         default:
-          if (!excluded) {
-            if (Object.keys(keys).includes(key)) {
-              current.special = keys[key];
-            }
+          if (key === '_asyncTestExports') {
+            break;
+          }
 
+          if (!excluded) {
             current.path.push(key);
             currentKey = key;
             let index = seenKeys.get(currentKey);
@@ -131,8 +128,12 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
           }
       }
 
-      if (args[key]) {
+      if (Reflect.has(args, key)) {
         return args[key];
+      }
+
+      if (_async && current.access.includes('get') && /then(\$\d*)?/.test(currentKey)) {
+        return;
       }
 
       return instance;
@@ -142,83 +143,38 @@ function intercept(ret, _eval, { keys = {}, args = {} } = {}) {
   return instance;
 }
 
-export function parseKey(exp, _eval = () => {}, { keys = {}, args = {} } = {}) {
+export function parseKey(exp, _eval = () => {}, args = {}) {
   const ret = [];
   evaluate(`with(s){\n${exp}\n}`, {
-    s: intercept(ret, _eval, { keys, args }),
+    s: intercept(ret, _eval, { ...args, Types }),
   });
   return ret;
 }
 
-export async function parseKeyAsync(exp, _eval) {
+export async function parseKeyAsync(exp, _eval = () => {}, args = {}) {
   const ret = [];
   await evaluateAsync(`with(s){\n${exp}\n}`, {
     s: intercept(ret, _eval, {
-      follow: true,
-      keys: {
-        then: 'Promise',
-        catch: 'Promise',
-      },
-    }),
+      Promise,
+      Types,
+      ...args,
+    }, true),
   });
-
-  return ret.map((item) => {
-    if (item.special !== 'Promise') {
-      return item;
-    }
-
-    const { path, access } = item;
-    if (path[0] === '_asyncTestExports') {
-      path.shift();
-      access.splice(1, 1);
-    }
-
-    const mapped = { ...item.mapped };
-    delete mapped.then; // todo: remove ${index} as well
-    delete mapped.catch;
-
-    const firstThenIndex = path.indexOf('then');
-    path.splice(firstThenIndex, path.length);
-    const mergedAccess = access.reduce((acc, cur) => {
-      if (cur === 'access') {
-        acc.push([cur]);
-      } else if (cur === 'get') {
-        acc.push([cur]);
-      } else {
-        acc[acc.length - 1].push(cur);
-      }
-
-      return acc;
-    }, []);
-    mergedAccess.splice(firstThenIndex, mergedAccess.length);
-    const concat = mergedAccess.reduce((acc, cur) => [...acc, ...cur], []);
-
-    return {
-      ...item,
-      access: concat,
-      calls: concat.reduce((acc, cur) => {
-        if (cur === 'call') {
-          return acc + 1;
-        }
-
-        return acc;
-      }, 0),
-      path,
-      mapped,
-    };
-  });
+  return ret;
 }
 
-export function getPath(func, follow) {
-  return parseKey(func, this, { follow }).reduce((acc, { path }) => [...acc, path], []);
+export function getPath(func) {
+  return parseKey(func, this).reduce((acc, { path }) => [...acc, path], []);
 }
 
-export const getPathAsync = async (func, follow) => (await parseKeyAsync(func, this, { follow }))
-  .reduce((acc, { path }) => [...acc, path], []);
+export const getPathAsync = async (func) => {
+  const parsed = await parseKeyAsync(func, this);
+  return parsed.reduce((acc, { path }) => [...acc, path], []);
+};
 
-export function isCallable(func, toObserve, all = false) {
+export function isCallable(func, filter, all = false) {
   return parseKey(func, this)
-    .filter(({ path }) => toObserve.includes(path.join('.')))
+    .filter(({ path }) => filter.includes(path.join('.')))
     [all ? 'every' : 'some'](({ calls }) => calls > 0); // eslint-disable-line no-unexpected-multiline
 }
 
@@ -259,7 +215,7 @@ export function fallToGlobal(target, _eval, oldKey = '') {
         return scope[key];
       }
 
-      if (Reflect.has(target, key)) {
+      if (!isPrimitive(target) && Reflect.has(target, key)) {
         const newTarget = target[key];
         if (typeof newTarget !== 'object' && typeof newTarget !== 'function') {
           return newTarget;
@@ -335,4 +291,12 @@ export async function listAccessesAsync(code, filter = []) {
   } catch (ex) {
     return [];
   }
+}
+
+export async function useConsoleLog(code, filter) {
+  const logs = [];
+  await evaluateAsync(code, {
+    console: mockedConsole.revokable(logs),
+  });
+  return logs.length > 0;
 }

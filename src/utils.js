@@ -1,7 +1,7 @@
+import * as babel from 'babel-core';
 import escodegen from 'escodegen';
-import * as acorn from 'acorn';
 import * as walk from 'acorn/dist/walk';
-import cache from './cache';
+import { acorn } from './cache';
 
 export function evaluate(code, args = {}, strict = false) {
   return Function(Object.keys(args).join(','), `${strict ? '\'use strict\';' : ''}${code}`)(...Object.values(args));
@@ -70,27 +70,30 @@ export function wrap(src, mocks, mockName = 'mock') {
     return '';
   }
 
-  const stripped = stripComments(src);
-  const strippedSemicolons = stripSemicolons(stripped);
+  src = stripSemicolons(stripComments(src));
 
-  if (!strippedSemicolons.length) {
+  if (!src.length) {
     return '';
   }
 
-  if (isFunction(strippedSemicolons, this)) {
-    return mocks ? `${mockName}(${strippedSemicolons}, ${mocks}, ${evalFunc})` : strippedSemicolons;
+  src = String(src).replace(/`/g, '\\`');
+
+  const ast = acorn.parse(src);
+  if (ast.body.length === 1 && ast.body[0].type === 'ExpressionStatement') {
+    return mocks ? `${mockName}(() => ${src}, ${mocks}, ${evalFunc})` : src;
   }
 
-  const ast = cache.ast.get(src);
-  if (ast.body.length === 1 &&
-    ast.body[0].type === 'ExpressionStatement' &&
-    ast.body[0].expression.type === 'CallExpression'
-  ) {
-    const strippedSrc = stripSemicolons(stripComments(src));
-    return mocks ? `${mockName}(() => ${strippedSrc}, ${mocks}, ${evalFunc})` : strippedSrc;
+  ({ code: src } = babel.transform(`() => { ${src} }`, {
+    plugins: ['implicit-return'],
+  }));
+
+  src = stripSemicolons(src);
+
+  if (mocks) {
+    return `${mockName}(${src}, ${mocks}, ${evalFunc})`;
   }
 
-  return mocks ? `${mockName}(${src}, ${evalFunc}), ${mocks}, ${evalFunc})` : `evaluate(() => { ${stripComments(src)} }, ${evalFunc})`;
+  return src;
 }
 
 export const isPrimitive = sth => sth === null || (typeof sth !== 'object' && typeof sth !== 'function');
@@ -122,10 +125,13 @@ export const assertAccess = target => new Proxy(() => {}, {
   },
 });
 
-export function getFunctionBody(func) {
+export function getFunctionBody(func, includeBlock = true) {
   const nodes = [];
-  walk.simple(cache.ast.get(func), {
+  walk.simple(acorn.parse(func), {
     FunctionDeclaration(node) {
+      nodes.push(node);
+    },
+    FunctionExpression(node) {
       nodes.push(node);
     },
     ArrowFunctionExpression(node) {
@@ -134,7 +140,14 @@ export function getFunctionBody(func) {
   });
 
   if (nodes.length && nodes[0].body !== undefined) {
-    return escodegen.generate(nodes[0].body);
+    let node = nodes[0].body;
+    if (!includeBlock) {
+      while (node.type === 'BlockStatement' && node[0] !== undefined) {
+        node = node[0].body;
+      }
+    }
+
+    return escodegen.generate(node);
   }
 
   if (typeof func === 'function') {
@@ -146,7 +159,7 @@ export function getFunctionBody(func) {
 
 export function getFunctionParams(func) {
   const nodes = [];
-  walk.simple(cache.ast.get(func), {
+  walk.simple(acorn.parse(func), {
     FunctionDeclaration(node) {
       nodes.push(node);
     },

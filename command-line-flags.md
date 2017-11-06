@@ -1,6 +1,7 @@
 ```
 -i, --input                 Input file (required)
 -o, --output                Output (if absent, prints to stdout)
+-m, --mocks
 -t, --target [jest]         Either Jest or Karma
 -g, --globals               Globals to be placed inside of /* global <globals> */
 --intro                     Content to insert at top of bundle (inside wrapper)

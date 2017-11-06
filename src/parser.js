@@ -1,9 +1,28 @@
 import escodegen from 'escodegen';
 import doctrine from 'doctrine';
-import * as acorn from 'acorn';
 import * as walk from 'acorn/dist/walk';
-import { stripSemicolons, stripComments, isPrimitive, validateSyntax } from './utils';
+import {
+  stripSemicolons,
+  stripComments,
+  isPrimitive,
+  validateSyntax,
+  getFunctionBody,
+  getFunctionParams,
+} from './utils';
+import { acorn } from './cache';
 import { getPath, getPathAsync } from './analyzer';
+
+const mappedTags = new Proxy({
+  return: 'returns',
+}, {
+  get(target, key) {
+    if (key in target) {
+      return target[key];
+    }
+
+    return key;
+  },
+});
 
 class Sample {
   constructor({
@@ -11,8 +30,7 @@ class Sample {
   }) {
     this.tags = Sample.parseTags(tags, {
       async: [],
-      returns: [{}],
-      return: [{}],
+      returns: [],
       name: [{}],
       example: [],
       mock: [],
@@ -23,13 +41,18 @@ class Sample {
   }
 
   get returns() {
-    return (this.tags.returns[0] || this.tags.return[0]).type;
+    if (!this.tags.returns.length) {
+      return {};
+    }
+
+    return this.tags.returns[0].type;
   }
 
   static parseTags(tags, /* istanbul ignore next */ defaults = {}) {
     const group = {};
     tags.forEach((tag) => {
-      group[tag.title] = [...(group[tag.title] || []), tag];
+      const title = mappedTags[tag.title];
+      group[title] = [...(group[title] || []), tag];
     });
     for (const [key, value] of Object.entries(defaults)) {
       if (!(key in group)) {
@@ -53,16 +76,30 @@ class Sample {
   }
 
   get isAsync() {
-    return this.tags.async.length > 0;
+    return this.tags.async.length > 0 || (
+      this.returns && this.returns.type === 'NameExpression' && ['Promise', 'easy.Promise'].includes(this.returns.name)
+    );
   }
 
   async parseExample({ description: code }, i) {
     if (this.name === undefined) {
       try {
+        let path;
         if (this.isAsync) {
-          this.name = (await getPathAsync(code)).pop().pop();
+          path = (await getPathAsync(code)).pop();
         } else {
-          this.name = getPath(code).pop().pop();
+          path = getPath(code).pop();
+        }
+
+        if (path.length > 1) {
+          for (let i = path.length - 1; i >= 0; i -= 1) {
+            if (!['then', 'catch'].includes(path[i])) {
+              this.name = path[i];
+              break;
+            }
+          }
+        } else {
+          [this.name] = path;
         }
       } catch (ex) {}
     }
@@ -77,8 +114,20 @@ class Sample {
       ...this.parseMocks(this.tags.mock[i]),
     };
 
+    let asyncFunction = 0;
+    if (validateSyntax(code).ex !== null) {
+      try {
+        asyncFunction = Number(
+          validateSyntax(
+            getFunctionParams(code).join(','),
+            getFunctionBody(code, false),
+          ).ex === false)
+        ;
+      } catch (ex) {}
+    }
+
     if (this.isAsync) {
-      data.async = this.isAsync;
+      data.async = this.isAsync + asyncFunction;
     }
 
     try {
@@ -112,9 +161,16 @@ class Sample {
 
           return name;
         });
-      } else {
+      } else if (this.returns.name) {
         data.result = [this.returns.name];
+      } else {
+        data.result = ['void'];
       }
+    }
+
+    if (data.result && data.result.length === 1 && data.result[0] === 'void') {
+      data.type = 'no-throw';
+      data.result = '';
     }
 
     return data;
@@ -127,11 +183,10 @@ export default async (code, { extractFunctions = true } = {}) => {
   const parsed = [];
 
   const ast = acorn.parse(code, {
-    ranges: true,
     onComment(block, comment) {
       if (block) {
         try {
-          parsed.push(doctrine.parse(comment, { unwrap: true }));
+          parsed.push(doctrine.parse(comment, { unwrap: true, sloppy: true }));
         } catch (ex) {}
       }
     },

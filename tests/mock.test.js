@@ -38,7 +38,7 @@ describe('#mock', () => {
     }, {
       'abc.xyz()': () => 5,
     }, func => eval(func))).toBe(15);
-  })
+  });
 
   test('mocks functions with params', () => {
     // eslint-disable-next-line no-undef
@@ -70,16 +70,16 @@ describe('#mock', () => {
   });
 
   test('mocks functions and getters correctly', () => {
-    expect(mock(() => obj.easy() + obj.easy + obj.easy([]) + obj.easy(1, 1023232), {
+    expect(mock(() => obj.easy() + obj.easy + obj.easy([]) + obj.easy(1, 1032), {
       'obj.easy': 10,
       'obj.easy()': () => 2,
-      'obj.easy(1)': () => 1,
-      'obj.easy(1,2)': () => 3,
+      'obj.easy([])': () => 1,
+      'obj.easy(1,1032)': () => 3,
     }, func => eval(func))).toBe(16);
 
     expect(mock(() => obj.easy + obj.easy(1, 1023232, 2) + obj.foo.bar(), {
       'obj.easy': 10,
-      'obj.easy(1, 2, 3)': () => 2,
+      'obj.easy(1, 1023232, 2)': () => 2,
       'obj.easy(1)': () => 1,
     }, func => eval(func))).toBe(13);
   });
@@ -93,25 +93,10 @@ describe('#mock', () => {
     }, func => eval(func))).toBe(3);
   });
 
-  test('mocks async functions', async () => {
-    expect(await mock.async(async () => obj.easy().then(value => value * 2), {
-      'obj.easy()': () => Promise.resolve(20),
-    }, eval)).toBe(40);
-
-    expect(await mock.async(() => obj.easy(), {
-      'obj.easy()': () => Promise.resolve(20),
-    }, eval)).toBe(20);
-
-    expect(await mock.async(() => obj.easy().catch(ex => ex), {
-      'obj.easy()': () => Promise.reject(new Error('xx')),
-    }, eval)).toBeInstanceOf(Error);
-
-    expect(await mock.async(async () => {
-      const value = await obj.easy();
-      return `${value}DDDD`;
-    }, {
-      'obj.easy()': () => new Promise((resolve) => { setTimeout(() => { resolve('x'); }, 500); }),
-    }, eval)).toBe('xDDDD');
+  test('mocks chain partially - promise case', async () => {
+    expect(await mock(() => contains().then(x => x), {
+      'contains()': () => Promise.resolve(10),
+    }, func => eval(func))).toBe(10);
   });
 
   test('doesn\'t overwrite original properties', () => {
@@ -122,7 +107,7 @@ describe('#mock', () => {
     expect(obj.test).toBe(2);
 
     expect(mock(() => obj.test('test'), {
-      'obj.test(1)': x => x,
+      'obj.test(\'test\')': x => x,
     }, func => eval(func))).toBe('test');
 
     expect(obj.test).toBe(2);
@@ -149,32 +134,41 @@ describe('#mock', () => {
   });
 
   test('eval-like', () => {
-    expect(mock('contains()', {
-      'contains()': 10,
-    }, func => eval(func))).toBe(10);
-  });
-});
-
-describe('#mock.async', () => {
-  test('eval-like', async () => {
-    expect(await mock.async('contains().then(x => x)', {
-      'contains()': () => Promise.resolve(10),
-    }, func => eval(func))).toBe(10);
+    expect(mock('contains(20)', {
+      'contains(20)': a => 10 + a,
+    }, func => eval(func))).toBe(30);
   });
 
-  test('multiline example', async () => {
+  test('multiline template', async () => {
     global.console = await import('mocks/console');
     global.console = global.console.default;
-    console.log(console.clearLog)
     console.clearLog();
-    expect(await mock.async(`const promise = frosmo.site.utils.window('foo.bar')
+    expect(await mock(`const promise = frosmo.site.utils.window('foo.bar')
       .then(function(result) {
         console.log(result);    // 123
       });
       var foo = {bar : 123 }
      `, {
-        'frosmo.site.utils.window(1)': () => Promise.resolve(123),
-      }, func => eval(func))).toHaveLog([123]);
+      'frosmo.site.utils.window(Types.String)': () => Promise.resolve(123),
+    }, func => eval(func))).toHaveLog([123]);
     console.restore();
+  });
+});
+
+describe('#mock.async', () => {
+  test('mocks async functions', async () => {
+    expect(await mock.async(async () => {
+      const value = await obj.easy();
+      return value * 2;
+    }, {
+      'obj.easy()': () => Promise.resolve(20),
+    }, eval)).toBe(40);
+
+    expect(await mock.async(async () => {
+      const value = await obj.easy();
+      return `${value}DDDD`;
+    }, {
+      'obj.easy()': () => new Promise((resolve) => { setTimeout(() => { resolve('x'); }, 500); }),
+    }, eval)).toBe('xDDDD');
   });
 });

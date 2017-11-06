@@ -1,12 +1,8 @@
-import fs from 'fs';
-import util from 'util';
 import prettify from './prettifier';
 import parse from './parser';
 import { wrap, validateSyntax, evaluate } from './utils';
-import { readFile, writeFile, toStdout } from './fs';
+import { readFileAsync, writeFileAsync, toStdout } from './fs';
 import constants from './constants';
-
-const readFileAsync = util.promisify(fs.readFile);
 
 class TestItem {
   constructor({
@@ -27,13 +23,13 @@ class TestItem {
     this.imports = imports;
     this.target = target;
     this.mocks = JSON.stringify(mocks);
-    this.mockName = async ? 'mock.async' : 'mock';
+    this.mockName = async === 2 ? 'mock.async' : 'mock';
     this.valid = false;
     this.output = this.print();
   }
 
   printName(code) {
-    return `${this.target.method}('${this.name}', ${this.async ? 'async ' : ''}() => {
+    return `${this.target.method}('${this.name}', ${this.async > 0 ? 'async ' : ''}() => {
       ${code}
     })`;
   }
@@ -70,7 +66,7 @@ class TestItem {
     }
 
     const wrapped = wrap(this.code, this.mocks, this.mockName);
-    const code = `expect(${this.async ? 'await ' : ''}${wrapped}).${this.renderEquality()}`;
+    const code = `expect(${this.async > 0 ? 'await ' : ''}${wrapped}).${this.renderEquality()}`;
     const test = this.printName(code);
 
     if (!wrapped.length) {
@@ -148,7 +144,7 @@ class Test {
   }
 
   printPartials() {
-    return Promise.all(this.partials.map(partial => readFile(partial)));
+    return Promise.all(this.partials.map(partial => readFileAsync(partial)));
   }
 
   printExports() {
@@ -239,9 +235,9 @@ class Test {
 
     return Promise.all([
       this.exports.length ?
-        writeFile(this.exportsFileName, await this.printExports()) :
+        writeFileAsync(this.exportsFileName, await this.printExports()) :
         Promise.resolve(''),
-      writeFile(this.filename, output),
+      writeFileAsync(this.filename, output),
     ]);
   }
 }

@@ -81,9 +81,15 @@ describe('Parser', () => {
     expect(samples[0].examples).toMatchSnapshot();
   });
 
-  test('supports async', async () => {
+  test('supports @async', async () => {
     expect(await parse(
       await readFileAsync(path.resolve(__dirname, 'fixtures/async.js'), 'utf-8'),
+    )).toMatchSnapshot();
+  });
+
+  test('detects async automatically', async () => {
+    expect(await parse(
+      await readFileAsync(path.resolve(__dirname, 'fixtures/get-device-price.js'), 'utf-8'),
     )).toMatchSnapshot();
   });
 

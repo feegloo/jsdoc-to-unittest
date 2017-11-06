@@ -14,7 +14,7 @@ export default { getFromURL };
 describe('getFromURL', () => {
   test('example 1', async () => {
     expect(
-      await mock.async(
+      await mock(
         () =>
           getFromURL('https://mail.google.com/mail/').then(response => response.slice(5).trim()),
         { \\"fetch('string')\\": 'hello world  ' },
@@ -200,7 +200,7 @@ describe('contains', () => {
 
 exports[`Creator resolves async name 1`] = `
 "/* global mock, evaluate */
-// Valid tests: 50.00%
+// Valid tests: 100.00%
 export function _window(property, options) {
   options = easy.utils.extend(
     {
@@ -228,17 +228,21 @@ export function _window(property, options) {
 export default { _window };
 
 /* global mock, evaluate */
-// Valid tests: 50.00%
+// Valid tests: 100.00%
 
 describe('window', () => {
   test('example 1', async () => {
-    throw new SyntaxError('missing ) after argument list');
-    /* expect(await mock.async(frosmo.site.utils.window('foo.bar')
-.then(function(result) {
-    console.log(result);    // 123
-});
-
-var foo = {bar : 123 };, func => eval(func)), {}, func => eval(func))).toBe(123); */
+    expect(
+      await mock(
+        () => {
+          frosmo.site.utils.window('foo.bar').then(result => console.log(result));
+          const foo = { bar: 123 };
+          return foo;
+        },
+        {},
+        func => eval(func),
+      ),
+    ).toBe(123);
   });
 
   test('example 2', async () => {
@@ -306,25 +310,20 @@ describe('each', () => {
   });
 
   test('example 3', () => {
-    expect(
-      evaluate(
-        () => {
-          const utils = {
-            power(base, exponent) {
-              return Math.pow(base, exponent);
-            },
-          };
-          easy.utils.each(
-            [1, 2, 3],
-            function (value, index) {
-              easy.console.log(index, value, this.power(value));
-            },
-            utils,
-          );
+    expect(() => {
+      const utils = {
+        power(base, exponent) {
+          return Math.pow(base, exponent);
         },
-        func => eval(func),
-      ),
-    ).not.toThrow(); // fixme: could be replaced with something more specific
+      };
+      return easy.utils.each(
+        [1, 2, 3],
+        function (value, index) {
+          return easy.console.log(index, value, this.power(value));
+        },
+        utils,
+      );
+    }).not.toThrow(); // fixme: could be replaced with something more specific
   });
 
   test('example 4', () => {

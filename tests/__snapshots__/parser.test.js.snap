@@ -1,5 +1,87 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Parser detects async automatically 1`] = `
+Object {
+  "exports": Array [
+    "function getDevicePrice() {
+    return easy.domElements.waitFor({ selector: '.device-price' }).then(function (els) {
+        return site.utils.extractPrice(els[0].textContent);
+    });
+}",
+  ],
+  "imports": Array [
+    "getDevicePrice",
+  ],
+  "samples": Array [
+    Object {
+      "examples": Array [
+        Object {
+          "async": 1,
+          "code": "location.href = 'http://www.play.pl/telefony/glosniki/glosnik-jabra-speak-410/?oid=4000963609';
+
+frosmo.site.products.getDevicePrice()
+.then(function(devicePrice){
+     console.log(devicePrice);  // 123
+});",
+          "name": undefined,
+          "result": "123",
+          "type": "value",
+        },
+      ],
+      "name": undefined,
+      "tags": Object {
+        "async": Array [],
+        "example": Array [
+          Object {
+            "description": "location.href = 'http://www.play.pl/telefony/glosniki/glosnik-jabra-speak-410/?oid=4000963609';
+
+frosmo.site.products.getDevicePrice()
+.then(function(devicePrice){
+     console.log(devicePrice);  // 123
+});",
+            "title": "example",
+          },
+        ],
+        "memberof": Array [
+          Object {
+            "description": "site.products",
+            "title": "memberof",
+          },
+        ],
+        "mock": Array [],
+        "name": Array [
+          Object {},
+        ],
+        "param": Array [
+          Object {
+            "description": "window",
+            "name": "global",
+            "title": "param",
+            "type": Object {
+              "expression": Object {
+                "name": "Window",
+                "type": "NameExpression",
+              },
+              "type": "OptionalType",
+            },
+          },
+        ],
+        "returns": Array [
+          Object {
+            "description": null,
+            "title": "return",
+            "type": Object {
+              "name": "easy.Promise",
+              "type": "NameExpression",
+            },
+          },
+        ],
+      },
+    },
+  ],
+}
+`;
+
 exports[`Parser detects mocks 1`] = `
 Array [
   Object {
@@ -39,7 +121,7 @@ Array [
 });",
     "name": "each",
     "result": "",
-    "type": "default",
+    "type": "no-throw",
   },
   Object {
     "code": "easy.utils.each({foo: 'bar', baz: 'bar'}, function (value, key) {
@@ -47,7 +129,7 @@ Array [
 });",
     "name": "each",
     "result": "",
-    "type": "default",
+    "type": "no-throw",
   },
   Object {
     "code": "var utils = {
@@ -61,8 +143,8 @@ easy.utils.each([1, 2, 3], function (value, index) {
     easy.console.log(index, value, this.power(value));
 }, utils);",
     "name": "each",
-    "result": " \\"this\\" references the utils object where the function \\"power\\" is available",
-    "type": "value",
+    "result": "",
+    "type": "no-throw",
   },
   Object {
     "code": "easy.utils.each({foo: 'bar', baz: 'bar'}, function (value, key) {
@@ -70,8 +152,8 @@ easy.utils.each([1, 2, 3], function (value, index) {
     easy.console.log(key, value, this.String.prototype.toUpperCase.call(value));
 });",
     "name": "each",
-    "result": " \\"this\\" references the global object where the built-in String object is available",
-    "type": "value",
+    "result": "",
+    "type": "no-throw",
   },
 ]
 `;
@@ -93,7 +175,7 @@ Array [
 ]
 `;
 
-exports[`Parser supports async 1`] = `
+exports[`Parser supports @async 1`] = `
 Object {
   "exports": Array [
     "function getFromURL(str) {
@@ -107,7 +189,7 @@ Object {
     Object {
       "examples": Array [
         Object {
-          "async": true,
+          "async": 1,
           "code": "getFromURL('https://mail.google.com/mail/')
   .then(response => response.slice(5).trim()); // \\"world\\"",
           "mocks": Object {
@@ -159,9 +241,6 @@ Object {
             "title": "param",
             "type": null,
           },
-        ],
-        "return": Array [
-          Object {},
         ],
         "returns": Array [
           Object {

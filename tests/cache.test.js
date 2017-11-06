@@ -1,14 +1,18 @@
-import cache from 'src/cache';
+import generic, { acorn } from 'src/cache';
 
-describe('#ast', () => {
+describe('#acorn', () => {
   test('accepts string functions and doesn\'t cache their ast', () => {
-    expect(cache.ast.get('() => {}')).toBeDefined();
-    expect(cache.ast.get('() => {}')).not.toBe(cache.ast.get('() => {}'));
+    expect(acorn.parse('() => {}')).toBeDefined();
+    expect(acorn.parse('() => {}')).not.toBe(acorn.parse('() => {}'));
   });
 
   test('accepts functions and cache their ast', () => {
     const x = () => {};
-    expect(cache.ast.get(x)).toBeDefined();
-    expect(cache.ast.get(x)).toBe(cache.ast.get(x));
+    expect(acorn.parse(x)).toBeDefined();
+    expect(acorn.parse(x)).toBe(acorn.parse(x));
   });
 });
+
+describe('#generic', () => {
+
+})

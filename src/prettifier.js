@@ -1,15 +1,12 @@
-import fs from 'fs';
-import util from 'util';
 import format from 'prettier-eslint';
 import yargs from 'yargs';
+import { readFileAsync } from './fs';
 
 yargs
   .boolean('prettify')
   .default('prettify', true);
 
 const { argv } = yargs;
-
-const readFileAsync = util.promisify(fs.readFile);
 
 export default async (sourceCode) => {
   if (!argv.prettify) {

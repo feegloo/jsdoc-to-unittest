@@ -7,6 +7,7 @@ import {
   listAccesses,
   listAccessesAsync,
 } from 'src/analyzer';
+import { Types } from 'src/feedback';
 
 const iterator = {
   * [Symbol.iterator]() {
@@ -78,16 +79,19 @@ describe('#parseKey', () => {
     expect(Object.keys(parseKey('foo.baz.baz')[0].mapped)).toEqual(['foo', 'baz', 'baz$1']);
   });
 
+  xtest('generators', () => {
+  })
+
   test('getters and calls', () => {
     expect(parseKey('foo.bar.baz(1, 2);foo.baz.baz.boo')).toEqual([
       {
         calls: 1,
-        access: ['access', 'get', 'get', 'call', [{ type: 'number', value: 1 }, { type: 'number', value: 2 }]],
+        access: ['access', 'get', 'get', 'call', [Types.Number, Types.Number]],
         path: ['foo', 'bar', 'baz'],
         mapped: {
           foo: ['access'],
           bar: ['get'],
-          baz: ['get', 'call', [{ type: 'number', value: 1 }, { type: 'number', value: 2 }]],
+          baz: ['get', 'call', [Types.Number, Types.Number]],
           ...iterator,
         },
       },
@@ -109,18 +113,12 @@ describe('#parseKey', () => {
   test('calls with primitives', () => {
     expect(parseKey('foo.bar.baz(1, 2)')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', [
-        { value: 1, type: 'number' },
-        { value: 2, type: 'number' },
-      ]],
+      access: ['access', 'get', 'get', 'call', [Types.Number, Types.Number]],
       path: ['foo', 'bar', 'baz'],
       mapped: {
         foo: ['access'],
         bar: ['get'],
-        baz: ['get', 'call', [
-          { value: 1, type: 'number' },
-          { value: 2, type: 'number' },
-        ]],
+        baz: ['get', 'call', [Types.Number, Types.Number]],
         ...iterator,
       },
     }]);
@@ -130,18 +128,12 @@ describe('#parseKey', () => {
     expect(parseKey('foo[0].bar().baz(1, 2)')).toEqual([{
       path: ['foo', '0', 'bar', 'baz'],
       calls: 2,
-      access: ['access', 'get', 'get', 'call', [], 'get', 'call', [
-        { value: 1, type: 'number' },
-        { value: 2, type: 'number' },
-      ]],
+      access: ['access', 'get', 'get', 'call', [], 'get', 'call', [Types.Number, Types.Number]],
       mapped: {
         foo: ['access'],
         0: ['get'],
         bar: ['get', 'call', []],
-        baz: ['get', 'call', [
-          { value: 1, type: 'number' },
-          { value: 2, type: 'number' },
-        ]],
+        baz: ['get', 'call', [Types.Number, Types.Number]],
         ...iterator,
       },
     }]);
@@ -150,40 +142,31 @@ describe('#parseKey', () => {
       {
         calls: 2,
         path: ['foo', '0', 'bar', 'baz'],
-        access: ['access', 'get', 'get', 'call', [
-          { value: 10, type: 'number' },
-          { value: 12, type: 'number' },
-        ], 'get', 'call', [
-          { value: 1, type: 'number' },
-          { value: 2, type: 'number' },
-        ]],
+        access: [
+          'access',
+          'get',
+          'get',
+          'call',
+          [Types.Number, Types.Number],
+          'get',
+          'call',
+          [Types.Number, Types.Number],
+        ],
         mapped: {
           foo: ['access'],
           0: ['get'],
-          bar: ['get', 'call',  [
-            { value: 10, type: 'number' },
-            { value: 12, type: 'number' },
-          ]],
-          baz: ['get', 'call', [
-            { value: 1, type: 'number' },
-            { value: 2, type: 'number' },
-          ]],
+          bar: ['get', 'call', [Types.Number, Types.Number]],
+          baz: ['get', 'call', [Types.Number, Types.Number]],
           ...iterator,
         },
       },
       {
         calls: 1,
         path: ['baz', 'bar'],
-        access: ['access', 'get', 'call', [
-          { value: 10, type: 'number' },
-          { value: 12, type: 'number' },
-        ]],
+        access: ['access', 'get', 'call', [Types.Number, Types.Number]],
         mapped: {
           baz: ['access'],
-          bar: ['get', 'call', [
-            { value: 10, type: 'number' },
-            { value: 12, type: 'number' },
-          ]],
+          bar: ['get', 'call', [Types.Number, Types.Number]],
           ...iterator,
         },
       },
@@ -195,7 +178,7 @@ describe('#parseKey', () => {
       return forEach();
     }
 
-    expect(parseKey('contains()', func => eval(func), true)).toEqual([
+    expect(parseKey('contains()', func => eval(func))).toEqual([
       {
         access: ['access', 'call', []],
         calls: 1,
@@ -220,18 +203,12 @@ describe('#parseKey', () => {
   test('return statement', () => {
     expect(parseKey('return foo.bar.baz(1, 2)')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', [
-        { value: 1, type: 'number' },
-        { value: 2, type: 'number' },
-      ]],
+      access: ['access', 'get', 'get', 'call', [Types.Number, Types.Number]],
       path: ['foo', 'bar', 'baz'],
       mapped: {
         foo: ['access'],
         bar: ['get'],
-        baz: ['get', 'call', [
-          { value: 1, type: 'number' },
-          { value: 2, type: 'number' },
-        ]],
+        baz: ['get', 'call', [Types.Number, Types.Number]],
         ...iterator,
       },
     }]);
@@ -249,6 +226,33 @@ describe('#parseKey', () => {
     }]);
   });
 
+  test('analyzes promises as expected', () => {
+    expect(parseKey('obj.foo().then')).toEqual([{
+      calls: 1,
+      access: ['access', 'get', 'call', [], 'get'],
+      path: ['obj', 'foo', 'then'],
+      mapped: {
+        obj: ['access'],
+        foo: ['get', 'call', []],
+        then: ['get'],
+        ...iterator,
+      },
+    }]);
+
+    expect(parseKey('obj.foo().then(() => {}).catch(() => {})')).toEqual([{
+      calls: 3,
+      access: ['access', 'get', 'call', [], 'get', 'call', [Types.Function], 'get', 'call', [Types.Function]],
+      path: ['obj', 'foo', 'then', 'catch'],
+      mapped: {
+        obj: ['access'],
+        foo: ['get', 'call', []],
+        then: ['get', 'call', [Types.Function]],
+        catch: ['get', 'call', [Types.Function]],
+        ...iterator,
+      },
+    }]);
+  });
+
   test('Symbol.unscopables', () => {
     expect(parseKey('forEach()')).toEqual([{
       calls: 1,
@@ -261,15 +265,19 @@ describe('#parseKey', () => {
     }]);
   });
 
+  test('currying', () => {
+    expect(parseKey('x()(true)(10)([2])')).toMatchSnapshot();
+  })
+
   test('calls with non-primitives', () => {
     expect(parseKey('easy.utils.isDate(new Date()); // true')).toEqual([{
       calls: 1,
-      access: ['access', 'get', 'get', 'call', [{ type: 'object', value: null }]],
+      access: ['access', 'get', 'get', 'call', [Types.Date]],
       path: ['easy', 'utils', 'isDate'],
       mapped: {
         easy: ['access'],
         utils: ['get'],
-        isDate: ['get', 'call', [{ type: 'object', value: null }]],
+        isDate: ['get', 'call', [Types.Date]],
         ...iterator,
       },
     }]);
@@ -363,33 +371,43 @@ describe('#parseKey', () => {
       ['bar', ['get']],
     ]);
   });
+
+  test('collects valid feedback', () => {
+    function getFromURL(str) {
+      return fetch(str); // eslint-disable-line no-undef
+    }
+
+    expect(parseKey('getFromURL(\'x\')', func => eval(func)))
+      .toEqual([
+        {
+          path: ['getFromURL'],
+          access: ['access', 'call', [Types.String]],
+          calls: 1,
+          mapped: {
+            getFromURL: ['access', 'call', [Types.String]],
+            ...iterator,
+          },
+        },
+        {
+          path: ['fetch'],
+          access: ['access', 'call', [Types.String]],
+          calls: 1,
+          mapped: {
+            fetch: ['access', 'call', [Types.String]],
+            ...iterator,
+          },
+        },
+      ]);
+  });
 });
 
 describe('#parseKeyAsync', () => {
-  test('analyzes promises as expected', async () => {
-    expect(await parseKeyAsync('obj.foo().then')).toEqual([{
-      calls: 1,
-      access: ['access', 'get', 'call', []],
-      path: ['obj', 'foo'],
-      special: 'Promise',
-      mapped: {
-        obj: ['access'],
-        foo: ['get', 'call', []],
-        ...iterator,
-      },
-    }]);
-
-    expect(await parseKeyAsync('obj.foo().then(console.log).catch(console.log)')).toEqual([{
-      calls: 1,
-      access: ['access', 'get', 'call', []],
-      path: ['obj', 'foo'],
-      special: 'Promise',
-      mapped: {
-        obj: ['access'],
-        foo: ['get', 'call', []],
-        ...iterator,
-      },
-    }]);
+  test('analyzes async functions', async () => {
+    expect(await parseKeyAsync(`{
+      foo.call();
+      await someAsyncCall(20);
+      foo.await();
+    }`)).toMatchSnapshot();
   });
 });
 
@@ -402,11 +420,7 @@ describe('#listAccesses', () => {
     expect(listAccesses('frosmo.xyz.aaa', ['frosmo.xyz["aaa"]'])).toEqual([['access', 'get', 'get']]);
     expect(listAccesses('frosmo.xyz.aaa()', ['frosmo.xyz.aaa'])).toEqual([['access', 'get', 'get', 'call', []]]);
     expect(listAccesses('frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa()']))
-      .toEqual([['access', 'get', 'get', 'call', [
-        { type: 'boolean', value: true },
-        { type: 'boolean', value: false },
-        { type: 'number', value: 2 },
-      ]]]);
+      .toEqual([['access', 'get', 'get', 'call', [Types.Boolean, Types.Boolean, Types.Number]]]);
     expect(listAccesses('frosmo.xyz.aaa();frosmo.xyz.aaa', ['frosmo.xyz.aaa'])).toEqual([
       ['access', 'get', 'get', 'call', []],
       ['access', 'get', 'get'],
@@ -414,42 +428,24 @@ describe('#listAccesses', () => {
   });
 
   test('detects correct number of arguments', () => {
-    expect(listAccesses('frosmo.xyz().aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
-      ['access', 'get', 'call', [], 'get', 'call', [
-        { type: 'boolean', value: true },
-        { type: 'boolean', value: false },
-        { type: 'number', value: 2 },
-      ]],
-    ]);
+    expect(listAccesses('frosmo.xyz().aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual(
+      [['access', 'get', 'call', [], 'get', 'call', [Types.Boolean, Types.Boolean, Types.Number]]],
+    );
   });
 
   test('has optional filter', () => {
     expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', [])).toEqual([
       ['access', 'get', 'call', []],
-      ['access', 'get', 'get', 'call', [
-        { type: 'boolean', value: true },
-        { type: 'boolean', value: false },
-        { type: 'number', value: 2 },
-      ]],
+      ['access', 'get', 'get', 'call', [Types.Boolean, Types.Boolean, Types.Number]],
     ]);
 
-    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)')).toEqual([
-      ['access', 'get', 'call', []],
-      ['access', 'get', 'get', 'call', [
-        { type: 'boolean', value: true },
-        { type: 'boolean', value: false },
-        { type: 'number', value: 2 },
-      ]],
-    ]);
+    expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)'))
+      .toEqual(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', []));
   });
 
   test('shadows objects', () => {
     expect(listAccesses('lol.xx();frosmo.xyz.aaa(true, false, 2)', ['frosmo.xyz.aaa()'])).toEqual([
-      ['access', 'get', 'get', 'call', [
-        { type: 'boolean', value: true },
-        { type: 'boolean', value: false },
-        { type: 'number', value: 2 },
-      ]],
+      ['access', 'get', 'get', 'call', [Types.Boolean, Types.Boolean, Types.Number]]
     ]);
   });
 
@@ -471,8 +467,8 @@ describe('#listAccesses', () => {
     }
 
     expect(listAccesses.call(func => eval(func), 'contains(2)')).toEqual([
-      ['access', 'call', [{ type: 'number', value: 2 }]],
-      ['access', 'get', 'get', 'call', [{ type: 'number', value: 2 }]],
+      ['access', 'call', [Types.Number]],
+      ['access', 'get', 'get', 'call', [Types.Number]],
     ]);
   });
 
@@ -484,11 +480,13 @@ describe('#listAccesses', () => {
 
 describe('#listAccessAsync', () => {
   test('lists accesses', async () => {
-    expect(await listAccessesAsync(`(() =>
-    getFromURL('https://mail.google.com/mail/').then(response => response.slice(5).trim()))()`,
+    expect(await listAccessesAsync(`
+      const response = await getFromURL('https://mail.google.com/mail/');
+      return response.slice(5).trim()`,
     ))
       .toEqual([
-        ['access', 'call', [{ type: 'string', value: 'https://mail.google.com/mail/' }]]
+        ['access', 'call', [Types.String]],
+        ['access', 'get', 'call', [Types.Number], 'call', []],
       ]);
   });
 

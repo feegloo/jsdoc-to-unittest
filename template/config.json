@@ -1,0 +1,7 @@
+{
+  "target": "jest",
+  "header": "header.js",
+  "footer": "footer.js",
+  "inline": false,
+  "globals": []
+}

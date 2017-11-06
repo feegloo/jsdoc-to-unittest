@@ -16,7 +16,7 @@ Generate jest/karma compliant test suite from any valid JS source containing jsd
 ## Prerequisites
 
 You will need the following things properly installed on your computer:
- * Node.js >=8.5.0
+ * Node.js >=8.8.1
  * Yarn >=1.0
 
 ## Installation

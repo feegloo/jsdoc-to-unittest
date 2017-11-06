@@ -9,7 +9,7 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint --cache {src,tests}/**/*.js",
-    "install": "babel src/ -d dist",
+    "install": "NODE_ENV=production rollup -c",
     "build": "bin/build-markdown",
     "clean": "bin/clean"
   },
@@ -18,7 +18,6 @@
   "license": "ISC",
   "devDependencies": {
     "babel-eslint": "^8.0.1",
-    "babel-plugin-dynamic-import-node": "^1.1.0",
     "eslint": "^4.7.2",
     "eslint-config-airbnb-base": "^12.0.1",
     "eslint-import-resolver-jest": "^1.0.1",
@@ -32,12 +31,17 @@
     "acorn": "^5.1.2",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
+    "babel-plugin-dynamic-import-node": "^1.1.0",
     "babel-plugin-implicit-return": "^1.0.1",
     "babel-plugin-syntax-object-rest-spread": "^6.13.0",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
     "doctrine": "^2.0.0",
     "escodegen": "^1.9.0",
     "prettier-eslint": "^8.2.0",
+    "rollup": "^0.50.0",
+    "rollup-plugin-babel": "^3.0.2",
     "yargs": "^9.0.1"
   },
   "jest": {

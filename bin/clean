@@ -1,4 +1,6 @@
 #!/bin/sh
 rm ./tests/index/trash-*.test.js 2> /dev/null
 rm -rd .cache 2> /dev/null
+rm -rd dist/ 2> /dev/null
+yarn install
 true

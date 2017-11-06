@@ -9,7 +9,7 @@ jest.mock('yargs');
 describe('Prettifier', () => {
   const setup = [
     { prettify: true },
-    {   eslint: './tests/fixtures/eslint-test-config.json' },
+    { eslint: './tests/fixtures/eslint-test-config.json' },
     { prettify: false },
   ];
 

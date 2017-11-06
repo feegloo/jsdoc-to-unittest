@@ -1,7 +1,6 @@
-import fs from 'fs';
 import path from 'path';
-import util from 'util';
 import yargs from 'yargs';
+import { readFileAsync } from './fs';
 import print from './creator';
 
 yargs
@@ -13,13 +12,19 @@ yargs
 
 const { argv } = yargs;
 
-const readFileAsync = util.promisify(fs.readFile);
-
 const basePath = path.resolve(__dirname, '..');
 
 const fields = [
   'inline',
   'target',
+];
+
+const files = [
+  'mocks',
+  'intro',
+  'header',
+  'outro',
+  'footer',
 ];
 
 async function getConfig(input, output = '') {
@@ -50,7 +55,7 @@ async function getConfig(input, output = '') {
     output,
   });
 
-  await Promise.all(['header', 'footer', 'intro', 'outro']
+  await Promise.all(files
     .filter(key => key in argv || key in config)
     .map(async (key) => {
       config[key] = await readFileAsync(
@@ -64,11 +69,16 @@ async function getConfig(input, output = '') {
 }
 
 export default async (input = argv.input, output = argv.output) => {
-  const config = await getConfig(input, output);
-  return print({
-    ...config,
-    get stdout() {
-      return output === undefined || String(output).trim().length === 0;
-    },
-  });
+  try {
+    const config = await getConfig(input, output);
+    return print({
+      ...config,
+      get stdout() {
+        return output === undefined || String(output).trim().length === 0;
+      },
+    });
+  } catch (ex) {
+    console.error(ex);
+    return false;
+  }
 };
